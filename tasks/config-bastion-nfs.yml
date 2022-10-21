@@ -1,0 +1,87 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-nfs : gather service facts"
+        service_facts:
+
+      - name: "xtoph_ocp4 : config-bastion-nfs : package installation"
+        yum: name=nfs-utils,rpcbind state=installed
+
+      - name: "xtoph_ocp4 : config-bastion-nfs  create directories"
+        file:
+          path:  '{{ item.path }}'
+          mode:  '{{ item.mode }}'
+          owner: '{{ item.owner }}'
+          group: '{{ item.group }}'
+          state: directory
+        with_items:
+          - {mode: '0755', owner: '65534', group: '65534', path: '{{ xtoph_ocp4.bastion.nfs_export }}/registry'}
+          - {mode: '0755', owner: '65534', group: '65534', path: '{{ xtoph_ocp4.bastion.nfs_export }}/hello-world'}
+          - {mode: '0755', owner: '0', group: '0', path: '{{ xtoph_ocp4.bastion.nfs_export }}/postgres-tower'}
+          - {mode: '0775', owner: '0', group: '0', path: '{{ xtoph_ocp4.bastion.nfs_export }}/postgres-tower/data'}
+    
+      ##
+      ## Create /etc/exports on bastion
+      ## 
+      ## Based on documentation:
+      ##   https://docs.openshift.com/container-platform/4.5/registry/configuring_registry_storage/configuring-registry-storage-baremetal.html
+      ##
+      ## If the storage type is NFS, you must enable the no_wdelay and root_squash mount options
+      ## 
+    
+      - name: "xtoph_ocp4 : config-bastion-nfs : cleanup conflicting entries in /etc/exports"
+        lineinfile:
+          dest:   '/etc/exports'
+          regexp: '{{ xtoph_ocp4.bastion.nfs_export }}(\s+).*$'
+          state:  absent
+    
+      - name: 'xtoph_ocp4 : config-bastion-nfs : add squashed entries in /etc/exports'
+        lineinfile:
+          dest: '/etc/exports'
+          line: '{{ item }}   *(rw,sync,no_subtree_check,all_squash,anonuid=65534,anongid=65534)'
+          state: present
+          owner: root
+          group: root
+          mode: 644
+        with_items:
+          - '{{ xtoph_ocp4.bastion.nfs_export }}/registry'
+          - '{{ xtoph_ocp4.bastion.nfs_export }}/hello-world'
+    
+      - name: 'xtoph_ocp4 : config-bastion-nfs : add unsquashed entries in /etc/exports'
+        lineinfile:
+          dest: '/etc/exports'
+          line: '{{ item }}   *(rw,sync,no_subtree_check,no_root_squash)'
+          state: present
+          owner: root
+          group: root
+          mode: 644
+        with_items:
+          - '{{ xtoph_ocp4.bastion.nfs_export }}/postgres-tower'
+    
+      - name: 'xtoph_ocp4 : config-bastion-nfs : restart services'
+        service: name={{ item }} state=restarted enabled=yes masked=no
+        with_items:
+          - 'nfs-server'
+          - 'rpcbind'
+    
+      - name: 'xtoph_ocp4 : config-bastion-nfs : add firewalld ports and services'
+        firewalld:
+          service: '{{ item }}'
+          immediate: yes
+          permanent: yes
+          state: enabled
+        with_items:
+          - 'nfs'
+          - 'mountd'
+          - 'rpc-bind'
+        when: 
+          - ansible_facts['services']['firewalld.service']['state'] is defined
+          - ansible_facts['services']['firewalld.service']['state'] == 'running'
+
+

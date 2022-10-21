@@ -1,0 +1,82 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  throttle: 1
+  block:
+
+
+      ##
+      ##    For every node in cluster: 
+      ##      until ( node == ready )
+      ##       scan for pending CSR's
+      ##       approve pending CSR's
+      ##       sleep
+      ##
+
+
+
+      - name: "xtoph_ocp4 : postinstall-cluster : watch until all nodes 'Ready', approve CSRs as needed"
+        shell:
+          cmd: |
+            export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+            if [[ `{{ oc_cmd }} get node --no-headers {{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }} | awk '{print $2}'` == "Ready" ]] ; then
+              exit 0
+            else
+              for i in `{{ oc_cmd }} get csr | grep -i pending | awk '{print $1}'`; do 
+                oc adm certificate approve $i
+                sleep 1
+              done
+              exit 1
+            fi 
+        register: result
+        until:  result.rc == 0
+        retries: 600
+        delay: 5
+
+
+
+      ##
+      ##    Now just watch for all clusteroperators ready
+      ##    There can be cases when timing is just right, that
+      ##    the results of 'get clusteroperators' can show all True.
+      ##    But that is harmless.  This cluster is "mostly" ready
+      ##    if this exits
+      ##
+    
+    
+    
+      - name: "xtoph_ocp4 : postinstall-cluster : watch until availability for all clusteroperators is 'True', approve CSRs as needed"
+        run_once: true
+        shell:
+          cmd: |
+            export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+            {{ oc_cmd }} get clusteroperators --no-headers | awk '{print $3}' | grep -i false 
+            if [[ $? == 0 ]]; then 
+              for i in `{{ oc_cmd }} get csr | grep -i pending | awk '{print $1}'`; do 
+                oc adm certificate approve $i
+                sleep 1
+              done
+              exit 1 
+            else 
+              exit 0 
+            fi
+        register: result
+        until:  result.rc == 0
+        retries: 600
+        delay: 5
+
+      - name: "xtoph_ocp4 : postinstall-cluster : final CSR approval check"
+        run_once: true
+        shell:
+          cmd: |
+            export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+            for i in `{{ oc_cmd }} get csr | grep -i pending | awk '{print $1}'`; do
+              oc adm certificate approve $i
+              sleep 1
+            done
+        register: result
+
+
+  vars:
+    - oc_cmd: "/usr/local/bin/oc"

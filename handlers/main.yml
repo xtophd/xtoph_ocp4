@@ -1,0 +1,25 @@
+
+
+
+- name:    "xtoph_ocp4 (handler) : restart cockpit"
+  listen:  "restart_cockpit"
+  service: name="{{ item }}" state=restarted
+  with_items:
+    - "cockpit"
+    - "cockpit.socket"
+
+
+
+- name:    "xtoph_ocp4 (handler) : restart httpd"
+  listen:  "restart_httpd"
+  service: name="httpd" state=restarted
+
+
+
+- name:    "xtoph_ocp4 (handler) : restart dnsmasq"
+  listen:  "restart_dnsmasq"
+  service: name="dnsmasq" state=restarted
+  when: xtoph_deploy.deployhost.dnsmasq_enable == true
+
+
+

@@ -1,0 +1,33 @@
+"workshop-vars":
+  network_id:   "{{ workshop_vars.network_network }}"
+  gateway:      "{{ workshop_vars.network_gateway }}"
+  nameserver:   "{{ workshop_vars.network_nameserver }}"
+  timeserver:   "{{ workshop_vars.network_timeserver }}"
+  broadcast:    "{{ workshop_vars.network_broadcast }}"
+  netmask:      "{{ workshop_vars.network_netmask }}"
+  prefix:       "{{ workshop_vars.network_prefix }}"
+
+
+
+"libvirt-192.168.123": 
+  network_id:   "192.168.123.0"
+  gateway:      "192.168.123.1"
+  nameserver:   "192.168.123.1"
+  timeserver:   "192.168.123.1"
+  broadcast:    "192.168.123.255"
+  netmask:      "255.255.255.0"
+  prefix:       "24"
+
+
+
+"homelab-192.168.100":
+  network_id:   "192.168.100.0"
+  gateway:      "192.168.100.1"
+  nameserver:   "192.168.1.30"
+  timeserver:   "192.168.1.30"
+  broadcast:    "192.168.100.255"
+  netmask:      "255.255.255.0"
+  prefix:       "24"
+
+
+

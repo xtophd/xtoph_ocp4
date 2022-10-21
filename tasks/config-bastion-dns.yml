@@ -1,0 +1,222 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-dns : populate service facts"
+        service_facts:
+
+
+
+      #
+      #    Package installation
+      #
+
+
+      
+      - name: "xtoph_ocp4 : config-bastion-dns : package installation"
+        yum: name=dnsmasq state=installed
+
+
+
+      #
+      #    NOTE: This project does NOT play nice with other projects
+      #          that monkey with dnsmasq configs.  Bastion host
+      #          should be a dedicated system for openshift.
+      #    
+      #    Cleanup any previous dnsmasq configs, IPs and hostnames   
+      #    
+
+
+      
+      - name: "xtoph_ocp4 : config-bastion-dns : clean cfg directory"
+        shell:
+          cmd: |
+            if [[ -d "/etc/dnsmasq.d" ]] ; then rm -rf /etc/dnsmasq.d/* ; fi
+
+
+
+      #
+      #    Put a friendly note in /etc/hosts to 
+      #    inform people that the config parameters
+      #    are in /etc/dnsmasq.d
+      #
+     
+
+ 
+      - name: "xtoph_ocp4 : config-bastion-dns : add comment to /etc/hosts"
+        blockinfile:
+          dest:   "/etc/hosts"
+          insertbefore: BOF
+          block: |
+            ##
+            ## NOTE - dns entries for the OCP cluster are in /etc/dnsmasq.d/
+            ## NOTE - this includes PTR, CNAME, SVR and WILDCARDS
+            ## NOTE - resolv.conf should point to localhost 127.0.0.1
+            ##
+          state:  present
+
+
+
+      #
+      #    We need to disable networkmanager 
+      #    from toying with /etc/resolv.conf
+      #
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-dns : disable network-manager /etc/resolv.conf adjustments"
+        template:
+          src:   "dns-resolv-fix.j2"
+          dest:  "/etc/NetworkManager/conf.d/90-dns-none.conf"
+          owner: root
+      
+      - name: "xtoph_ocp4 : config-bastion-dns : restart networkmanager service"
+        service: name=NetworkManager state=reloaded enabled=yes
+
+
+
+      #
+      #    Now deploy a /etc/resolv.conf that 
+      #    points to our bastion dns server
+      #
+     
+
+ 
+      - name: "xtoph_ocp4 : config-bastion-dns : deploy resolv.conf"
+        vars: 
+          - p_search:     "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+          - p_nameserver: "127.0.0.1"
+        template:
+          src:   "dns-resolv-conf.j2"
+          dest:  "/etc/resolv.conf"
+          owner: root
+
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-dns : deploy STANDARD options, API and WILDCARD"
+        vars:
+          - p_clustername: "{{ xtoph_ocp4.ocp.clustername }}"
+          - p_nameServer:  "{{ xtoph_ocp4.network.nameserver }}"
+          - p_addr:        "{{ xtoph_ocp4.bastion.host_ip }}"
+          - p_domain:      "{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_wildcard:    "{{ xtoph_ocp4.ocp.wildcard }}.{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_revAddr:     "{{ (p_addr.split('.'))[::-1]|join('.') }}"
+        template:
+          src: "dnsmasq-standard-opts.j2"
+          dest: "/etc/dnsmasq.d/30-standard-opts.conf"
+          owner: root
+          src:   "{{ item.src }}"
+          dest:  "{{ item.dest }}"
+          owner: root
+          group: root
+          mode:  644
+        with_items:
+          - { src: "dnsmasq-standard-opts.j2",  dest: "/etc/dnsmasq.d/30-standard-opts.conf" }
+          - { src: "dnsmasq-api-entry.j2",      dest: "/etc/dnsmasq.d/55-api-{{ p_clustername }}.conf" }
+          - { src: "dnsmasq-wildcard-entry.j2", dest: "/etc/dnsmasq.d/45-wildcard-{{ p_clustername }}.conf" }
+
+    
+
+#
+#    Nodes: deploy distinct configuration files for each OCP node
+#
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  block:
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-dns : deploy HOST entries"
+        vars:
+          - p_name:        "{{ inventory_hostname_short }}"
+          - p_domain:      "{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_addr:        "{{ h_pubIP }}"
+          - p_revAddr:     "{{ (p_addr.split('.'))[::-1]|join('.') }}"
+        template:
+          src:   "dnsmasq-host-entry.j2"
+          dest:  "/etc/dnsmasq.d/50-dns-{{ p_domain }}-{{ p_name }}.conf"
+          owner: root
+          group: root
+          mode:  644
+    
+      - name: "xtoph_ocp4 : config-bastion-dns : deploy ETCD entries"
+        vars:
+          - p_addr:        "{{ h_pubIP }}"
+          - p_domain:      "{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_etcdName:    "{{ h_etcdName | default('') }}"
+        template:
+          src: "dnsmasq-etcd-entry.j2"
+          dest: "/etc/dnsmasq.d/45-etcd-{{ p_etcdName }}.conf"
+          owner: root
+          group: root
+          mode: 644
+        when:
+          - p_etcdName != ""
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+      #
+      #    Last couple of items:
+      #
+      #      disable nscd       dnsmasq already performs caching
+      #      firewall rules     add 'dns' to firewalld if firewalld is enabled
+      #      systemd overrides  add restart=always to dnsmasq service
+      #      service restart    
+      #
+      
+      - name: "xtoph_ocp4 : config-bastion-dns : service disable"
+        service:
+          name: "{{ item }}"
+          enabled: no
+          state: stopped
+          masked: no
+        when: 
+          - ansible_facts['services']['nscd.service']['state'] is defined
+        with_items:
+          - 'nscd.socket'
+          - 'nscd.service'
+
+      - name: "xtoph_ocp4 : config-bastion-dns : firewalld add service dns"
+        firewalld:
+          service: dns
+          immediate: yes
+          permanent: yes
+          state: enabled
+        when: 
+          - ansible_facts['services']['firewalld.service']['state'] is defined
+          - ansible_facts['services']['firewalld.service']['state'] == 'running'
+
+      - name: "xtoph_ocp4 : config-bastion-dns : create systemd override directory"
+        file:
+          path: /etc/systemd/system/dnsmasq.service.d
+          mode: "0755"
+          state: directory
+      
+      - name: "xtoph_ocp4 : config-bastion-dns : deploy systemd override config"
+        template:
+          src: "dnsmasq-systemd-overrides.j2"
+          dest: "/etc/systemd/system/dnsmasq.service.d/overrides.conf"
+          owner: root
+          group: root
+          mode: 644
+      
+      - name: "xtoph_ocp4 : config-bastion-dns : service restart dnsmasq "
+        service: 
+           name: dnsmasq 
+           state: restarted 
+           enabled: yes 
+           daemon_reload: yes
+
+

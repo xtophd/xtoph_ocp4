@@ -1,0 +1,19 @@
+
+
+
+#
+#    Install additional utilities and 
+#    common packages on bastion
+#
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+      - name: "xtoph_ocp4 : config-bastion-basics : install additional packages"
+        yum: name=tree,wget,bind-utils,tar,net-tools,httpd,jq state=installed
+
+
+

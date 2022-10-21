@@ -1,0 +1,70 @@
+
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+      #
+      #    Use service_facts module to collect systemd info
+      #    We can then sanely test existence of units
+      #    Here are some sample debugs as well
+      #
+      #     - debug:
+      #         var: ansible_facts.services
+      #         var: ansible_facts.services["httpd.service"]
+      #
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-firewalld : populate service facts"
+        service_facts:
+
+
+
+      - block:
+      
+      
+      
+            - name: "xtoph_ocp4 : config-bastion-firewalld : yum install packages"
+              yum: name=firewalld state=installed
+              register: result
+              retries: 10
+              until: result is succeeded
+              delay: 5
+          
+          
+          
+            ##
+            ##    We have to use a shell command as the ansible module
+            ##    requires the firewalld service to be active.
+            ##
+          
+          
+          
+            - name: "xtoph_ocp4 : config-bastion-firewalld : add minimum firewalld service rules before service start"
+              shell:
+                cmd: firewall-offline-cmd --add-service="{{ item }}"
+              with_items:
+                - "ssh"
+          
+          
+          
+            - name: "xtoph_ocp4 : config-bastion-firewalld : service start"
+              service: 
+                name="firewalld" 
+                state=started 
+                enabled=yes 
+                masked=no 
+                daemon-reload=no
+
+
+
+        when: ansible_facts['services']['firewalld.service']['state'] is undefined or
+              ansible_facts['services']['firewalld.service']['state'] != 'running'
+
+
+
+

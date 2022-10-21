@@ -1,0 +1,160 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+
+      #
+      # We need some Ansible facts for tasks below
+      #
+
+      - setup:
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : populate service facts"
+        service_facts:
+
+      - debug:
+          msg: "Ansible Facts: {{ ansible_distribution }} {{ ansible_distribution_major_version  }}"
+        when: xtoph_ocp4._debug
+ 
+      - name: "xtoph_ocp4 : config-bastion-dhcp : package installation (RHEL8)"
+        yum: name=dhcp-server state=installed
+        when:
+          - ansible_distribution == "RedHat"
+          - ansible_distribution_major_version == "8"
+      
+      - name: "xtoph_ocp4 : config-bastion-dhcp : package installation (RHEL7)"
+        yum: name=dhcp state=installed
+        when:
+          - ansible_distribution == "RedHat" or ansible_distribution == "CentOS"
+          - ansible_distribution_major_version == "7"
+    
+      - name: "xtoph_ocp4 : config-bastion-dhcp : clean cfg fragments directory"
+        shell:
+          cmd: |
+            if [[ -d "/etc/dhcp/cfg-fragments" ]] ; then rm -rf /etc/dhcp/cfg-fragments ; fi
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : create cfg fragments directory"
+        file:
+          path: /etc/dhcp/cfg-fragments
+          mode: "0755"
+          state: directory
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  block:
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : deploy host config framents"
+        template:
+          src: "dhcp-host-entry.j2"
+          dest: "/etc/dhcp/cfg-fragments/40-host-{{ p_domain }}-{{ p_name }}.conf"
+          owner: root
+          group: root
+          mode: 644
+        when: inventory_hostname not in groups['myBastion']
+
+  vars:
+    - p_name:      "{{ inventory_hostname_short }}"
+    - p_addr:      "{{ h_pubIP  }}"
+    - p_mac:       "{{ h_pubMAC }}"
+    - p_nextsvr:   "{{ xtoph_ocp4.bastion.host_ip }}"
+    - p_network:   "{{ xtoph_ocp4.network.network_id }}"
+    - p_netmask:   "{{ xtoph_ocp4.network.netmask }}"
+    - p_broadcast: "{{ xtoph_ocp4.network.broadcast }}"
+    - p_gateway:   "{{ xtoph_ocp4.network.gateway }}"
+    - p_dns:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
+    - p_ntp:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.ntp == true else xtoph_ocp4.network.timeserver }}"
+    - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
+    - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
+    - p_dhcpgroup: "{{ xtoph_ocp4.ocp.clustername }}"
+    - p_http_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : deploy standard options"
+        template:
+          src: "dhcp-standard-opts.j2"
+          dest: "/etc/dhcp/cfg-fragments/10-standard-opts.conf"
+          owner: root
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : deploy subnet-start config frament"
+        template:
+          src: "dhcp-subnet-start.j2"
+          dest: "/etc/dhcp/cfg-fragments/20-subnet-start.conf"
+          owner: root
+          group: root
+          mode: 644
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : deploy dhcp group start"
+        vars:
+          - p_dhcpgroup: "{{ xtoph_ocp4.ocp.clustername }}"
+        template:
+          src: "dhcp-group-start.j2"
+          dest: "/etc/dhcp/cfg-fragments/30-group-start.conf"
+          owner: root
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : deploy dhcp group finish"
+        template:
+          src: "dhcp-group-finish.j2"
+          dest: "/etc/dhcp/cfg-fragments/50-group-finish.conf"
+          owner: root
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : deploy subnet-finish config frament"
+        template:
+          src: "dhcp-subnet-finish.j2"
+          dest: "/etc/dhcp/cfg-fragments/60-subnet-finish.conf"
+          owner: root
+          group: root
+          mode: 644
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : assemble config fragments"
+        assemble:
+          src: "/etc/dhcp/cfg-fragments"
+          dest: "/etc/dhcp/dhcpd.conf"
+          owner: root
+          group: root
+          mode: 644
+    
+      - name: "xtoph_ocp4 : config-bastion-dhcp : restart services"
+        service: name={{ item }} state=restarted enabled=yes masked=no
+        with_items:
+          - "dhcpd"
+    
+      - name: "xtoph_ocp4 : config-bastion-dhcp : add firewalld ports and services"
+        firewalld:
+          service: "{{ item }}"
+          immediate: yes
+          permanent: yes
+          state: enabled
+        with_items:
+          - "dhcp"
+        when: 
+          - ansible_facts['services']['firewalld.service']['state'] is defined
+          - ansible_facts['services']['firewalld.service']['state'] == 'running'
+
+  vars:
+    - p_name:      "{{ inventory_hostname_short }}"
+    - p_addr:      "{{ h_pubIP  }}"
+    - p_mac:       "{{ h_pubMAC }}"
+    - p_nextsvr:   "{{ xtoph_ocp4.bastion.host_ip }}"
+    - p_network:   "{{ xtoph_ocp4.network.network_id }}"
+    - p_netmask:   "{{ xtoph_ocp4.network.netmask }}"
+    - p_broadcast: "{{ xtoph_ocp4.network.broadcast }}"
+    - p_gateway:   "{{ xtoph_ocp4.network.gateway }}"
+    - p_dns:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
+    - p_ntp:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.ntp == true else xtoph_ocp4.network.timeserver }}"
+    - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
+    - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
+    - p_dhcpgroup: "{{ xtoph_ocp4.ocp.clustername }}"
+    - p_http_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
+
+
+

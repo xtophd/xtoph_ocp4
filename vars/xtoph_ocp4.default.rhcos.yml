@@ -1,0 +1,17 @@
+
+"workshop-vars":
+  bootloader:       "{{ h_rhcosLOADER   | default('') }}"
+  blk_dev:          "{{ h_rhcosDEV      | default('') }}"
+  bond_dev:         "{{ h_rhcosBOND     | default('')  }}"
+  nic_dev:          "{{ h_rhcosNIC      | default('--required--') }}"
+  nic_mac:          "{{ h_pubMAC        | default('--required--') }}"
+  usb_delay:        "{{ h_rhcosUSBdelay | default('') }}"
+
+"homelab-ov10g":
+  bootloader:       "bios"
+  blk_dev:          "/dev/sda"
+  bond_dev:         ""
+  nic_dev:          "dhcp"
+  nic_mac:          "--required--"
+  usb_delay:        ""
+

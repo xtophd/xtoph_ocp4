@@ -1,0 +1,231 @@
+- name: "main.yml : ***** BEGIN XTOPH_OCP4 ROLE PROCESSING *****"
+  debug: msg="inventory_hostname={{ inventory_hostname }}"
+
+
+
+##
+##    Processing of xtoph_ocp4 begins with loading
+##    variables and then pruning and grafting 
+##    everything into one single dictionary called
+##    
+##        xtoph_ocp4{}
+##
+
+- name: "main.yml : loading default vars"
+  include_vars:
+    name: '{{ item.varname }}'
+    file: '{{ item.filename }}'
+  loop:
+    - { varname: 'xtoph_ocp4',               filename: 'xtoph_ocp4.default.yml' }
+    - { varname: 'default_network',          filename: 'xtoph_ocp4.default.network.yml' }
+    - { varname: 'default_ocp',              filename: 'xtoph_ocp4.default.ocp.yml' }
+    - { varname: 'default_bastion',          filename: 'xtoph_ocp4.default.bastion.yml' }
+    - { varname: 'default_rhcos',            filename: 'xtoph_ocp4.default.rhcos.yml' }
+    - { varname: 'default_assets_openshift', filename: 'xtoph_ocp4.default.assets.openshift.yml' }
+    - { varname: 'default_assets_rhcos',     filename: 'xtoph_ocp4.default.assets.rhcos.yml' }
+    - { varname: 'default_assets_matchbox',  filename: 'xtoph_ocp4.default.assets.matchbox.yml' }
+
+
+
+- name: "main.yml : loading custom vars from {{ playbook_dir }}"
+  include_vars:
+    name: '{{ item.varname }}'
+    file: '{{ item.filename }}'
+  when: item.filename|length > 0
+  loop:
+    - { varname: 'custom_xtoph_ocp4',       filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.yml") }}' }
+    - { varname: 'custom_network',          filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.network.yml") }}' }
+    - { varname: 'custom_ocp',              filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.ocp.yml") }}' }
+    - { varname: 'custom_bastion',          filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.bastion.yml") }}' }
+    - { varname: 'custom_rhcos',            filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.rhcos.yml") }}' }
+    - { varname: 'custom_assets_openshift', filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.assets.openshift.yml") }}' }
+    - { varname: 'custom_assets_rhcos',     filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.assets.rhcos.yml") }}' }
+    - { varname: 'custom_assets_matchbox',  filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.assets.matchbox.yml") }}' }
+
+
+
+
+##    xtoph_ocp4 .......... baseline is loaded during default vars above
+##                          here we only overlay the custom values
+
+- name: "main.yml : apply custom_xtoph_ocp4 => xtoph_ocp4"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({item.key: item.value}, recursive=true) }}"
+  loop: "{{ lookup('dict', custom_xtoph_ocp4 | default({}), wantlist=True ) }}"
+  when: custom_xtoph_ocp4 is defined
+
+
+
+##    xtoph_ocp4.network .. graft default_network
+##                          overlay custom_network
+
+- name: "main.yml : graft network details => xtoph_ocp4.network"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'network': default_network[xtoph_ocp4._network_profile] }, recursive=true) }}"
+  when: default_network[xtoph_ocp4._network_profile] is defined
+
+- name: "main.yml : apply custom_network_assets => xtoph_ocp4.network"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'network': {item.key: item.value}}, recursive=true) }}"
+  loop: "{{ lookup('dict', custom_assets_network[xtoph_ocp4._network_profile] | default({}), wantlist=True ) }}"
+  when: custom_network[xtoph_ocp4._network_profile] is defined
+
+
+
+##    xtoph_ocp4.bastion .. graft default_bastion
+##                          overlay custom_bastion
+
+- name: "main.yml : graft bastion details => xtoph_ocp4.bastion"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'bastion': default_bastion[xtoph_ocp4._bastion_profile] }, recursive=true) }}"
+  when: default_bastion[xtoph_ocp4._bastion_profile] is defined
+
+- name: "main.yml : apply custom_bastion_assets => xtoph_ocp4.bastion"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'bastion': {item.key: item.value}}, recursive=true) }}"
+  loop: "{{ lookup('dict', custom_assets_bastion[xtoph_ocp4._bastion_profile] | default({}), wantlist=True ) }}"
+  when: custom_bastion[xtoph_ocp4._bastion_profile] is defined
+
+
+
+##    xtoph_ocp4.ocp         .. graft default_ocp
+##                              overlay custom_ocp
+
+- name: "main.yml : graft bastion details => xtoph_ocp4.ocp"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'ocp': default_ocp[xtoph_ocp4._ocp_profile] }, recursive=true) }}"
+  when: default_ocp[xtoph_ocp4._ocp_profile] is defined
+
+- name: "main.yml : apply custom_ocp_assets => xtoph_ocp4.ocp"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'ocp': {item.key: item.value}}, recursive=true) }}"
+  loop: "{{ lookup('dict', custom_assets_ocp[xtoph_ocp4._ocp_profile] | default({}), wantlist=True ) }}"
+  when: custom_assets_ocp[xtoph_ocp4._ocp_profile] is defined
+
+
+
+##    xtoph_ocp4.rhcos       .. graft default_rhcos
+##                              overlay custom_rhcos
+
+- name: "main.yml : graft rhcos details => xtoph_ocp4.rhcos"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'rhcos': default_rhcos[xtoph_ocp4._rhcos_profile] }, recursive=true) }}"
+  when: default_rhcos[xtoph_ocp4._rhcos_profile] is defined
+
+- name: "main.yml : apply custom_rhcos => xtoph_ocp4.rhcos"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'rhcos': {item.key: item.value}}, recursive=true) }}"
+  loop: "{{ lookup('dict', custom_rhcos[xtoph_ocp4._rhcos_profile] | default({}), wantlist=True ) }}"
+  when: custom_rhcos[xtoph_ocp4._rhcos_profile] is defined
+
+
+
+##
+##    Graft assets for specified Openshift version
+##    on to xtoph_ocp4
+##
+
+
+
+##    xtoph_ocp4.ocp_assets
+
+- name: "main.yml : graft openshift assets => xtoph_ocp4.ocp_assets"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'ocp_assets': default_assets_openshift[xtoph_ocp4.ocp.version] }, recursive=true) }}"
+  when: default_assets_openshift[xtoph_ocp4.ocp.version] is defined
+
+- name: "main.yml : apply custom_openshift_assets => xtoph_ocp4.openshift_assets"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'openshift_assets': {item.key: item.value}}, recursive=true) }}"
+  loop: "{{ lookup('dict', custom_assets_openshift[xtoph_ocp4.ocp.version] | default({}), wantlist=True ) }}"
+  when: custom_assets_openshift[xtoph_ocp4.ocp.version] is defined
+
+
+
+##    xtoph_ocp4.rhcos_assets
+
+- name: "main.yml : graft rhcos assets => xtoph_ocp4.rhcos_assets"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'rhcos_assets': default_assets_rhcos[xtoph_ocp4.ocp.version] }, recursive=true) }}"
+  when: default_assets_rhcos[xtoph_ocp4.ocp.version] is defined
+
+- name: "main.yml : apply custom_rhcos_assets => xtoph_ocp4.rhcos_assets"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'rhcos_assets': {item.key: item.value}}, recursive=true) }}"
+  loop: "{{ lookup('dict', custom_assets_rhcos[xtoph_ocp4.ocp.version] | default({}), wantlist=True ) }}"
+  when: custom_assets_rhcos[xtoph_ocp4.ocp.version] is defined
+
+
+
+##    xtoph_ocp4.matchbox_assets
+
+- name: "main.yml : graft matchbox assets => xtoph_ocp4.matchbox_assets"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'matchbox_assets': default_assets_matchbox[xtoph_ocp4.ocp.version] }, recursive=true) }}"
+  when: default_assets_matchbox[xtoph_ocp4.ocp.version] is defined
+
+- name: "main.yml : apply custom_matchbox_assets => xtoph_ocp4.matchbox_assets"
+  set_fact:
+    xtoph_ocp4: "{{ xtoph_ocp4 | combine({'matchbox_assets': {item.key: item.value}}, recursive=true) }}"
+  loop: "{{ lookup('dict', custom_assets_matchbox[xtoph_ocp4.ocp.version] | default({}), wantlist=True ) }}"
+  when: custom_assets_matchbox[xtoph_ocp4.ocp.version] is defined
+
+
+
+################################################################################
+################################################################################
+
+
+
+##
+##    At this point, the xtoph_ocp4 dictionary is complete, 
+##    so debug/dump it to the screen
+##
+
+- name: "main.yml : debug"
+  debug: var=xtoph_ocp4
+
+
+
+##
+##    Jump to the compenent of this role
+##    based on variable xtoph_ocp4_action
+##
+
+
+- include_tasks: "config-bastion.yml"
+  when:
+    - xtoph_ocp4_action == "config-bastion"
+
+- include_tasks: "preinstall-bootstrap.yml"
+  when:
+    - xtoph_ocp4_action == "preinstall-bootstrap"
+
+- include_tasks: "preinstall-masters.yml"
+  when:
+    - xtoph_ocp4_action == "preinstall-masters"
+
+- include_tasks: "preinstall-workers.yml"
+  when:
+    - xtoph_ocp4_action == "preinstall-workers"
+
+- include_tasks: "postinstall-node.yml"
+  when:
+    - xtoph_ocp4_action == "postinstall-node"
+
+- include_tasks: "postinstall-cluster.yml"
+  when:
+    - xtoph_ocp4_action == "postinstall-cluster"
+
+- include_tasks: "preuninstall-node-shutdown.yml"
+  when:
+    - xtoph_ocp4_action == "preuninstall-node-shutdown"
+
+
+##
+##    We are done
+##
+
+- name: "main.yml : ***** END XTOPH_OCP4 ROLE PROCESSING *****"
+  debug: msg="inventory_hostname={{ inventory_hostname }}"
+

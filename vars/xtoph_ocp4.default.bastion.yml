@@ -1,0 +1,65 @@
+"workshop-vars":
+  host_ip:            "{{ hostvars[groups['myBastion'][0]].h_pubIP }}"
+  host_name:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}"
+  host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}.{{ workshop_vars.clustername }}.{{ workshop_vars.network_basedomain }}"
+
+  chrome:             "{{ workshop_vars.bastion.chrome             | default(False)  }}"
+  cockpit:            "{{ workshop_vars.bastion.cockpit            | default(True)   }}"
+  cockpit_port:       "{{ workshop_vars.bastion.cockpit_port       | default('')     }}"
+  desktop_gui:        "{{ workshop_vars.bastion.desktop_gui        | default(False)  }}"
+  desktop_chrome:     "{{ workshop_vars.bastion.desktop_chrome     | default(False)  }}"
+  desktop_vnc:        "{{ workshop_vars.bastion.desktop_vnc        | default(False)  }}"
+  dhcp:               "{{ workshop_vars.bastion.dhcp               | default(True)   }}"
+  dhcp_pxe:           "{{ workshop_vars.bastion.dhcp_pxe           | default(True)   }}"
+  dhcp_uefi_http:     "{{ workshop_vars.bastion.dhcp_uefi_http     | default(True)   }}"
+  dns:                "{{ workshop_vars.bastion.dns                | default(True)   }}"
+  firewalld:          "{{ workshop_vars.bastion.firewalld          | default(True)   }}"
+  haproxy:            "{{ workshop_vars.bastion.haproxy            | default(True)   }}"
+  httpd:              "{{ workshop_vars.bastion.httpd              | default(False)  }}"
+  httpd_port:         "{{ workshop_vars.bastion.httpd_port         | default('8080') }}"
+  iso:                "{{ workshop_vars.bastion.iso                | default(False)  }}"
+  matchbox:           "{{ workshop_vars.bastion.matchbox           | default(True)   }}"
+  matchbox_port:      "{{ workshop_vars.bastion.matchbox_port      | default('8008') }}"
+  nfs:                "{{ workshop_vars.bastion.nfs                | default(True)   }}"
+  nfs_export:         "{{ workshop_extras.nfs_export               | default('/home/nfs-{{ workshop_vars.clustername }}') }}"
+  ntp:                "{{ workshop_vars.bastion.ntp                | default(True)   }}"
+  squid:              "{{ workshop_vars.bastion.squid              | default(False)  }}"
+  squid_http_url:     "{{ workshop_vars.bastion.squid_http_url     | default('')     }}"
+  squid_https_url:    "{{ workshop_vars.bastion.squid_https_url    | default('')     }}"
+  workshop_user:      "{{ workshop_vars.bastion.workshop_user      | default(True)  }}"
+  workshop_materials: "{{ workshop_vars.bastion.workshop_materials | default(True)  }}"
+
+
+
+"default":
+  host_ip:            "{{ hostvars[groups['myBastion'][0]].h_pubIP }}"
+  host_name:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}"
+  host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}.-- required --"
+
+  chrome:             False
+  cockpit:            True
+  cockpit_port:       ""
+  desktop_gui:        False
+  desktop_chrome:     False
+  desktop_vnc:        False
+  dhcp:               True
+  dhcp_pxe:           True
+  dhcp_uefi_http:     True
+  dns:                True
+  firewalld:          True
+  haproxy:            True
+  httpd:              False
+  httpd_port:         "8080"
+  iso:                False
+  matchbox:           True
+  matchbox_port:      "8008"
+  nfs:                True
+  nfs_export:         ""
+  ntp:                True
+  squid:              False
+  squid_http_url:     ""
+  squid_https_url:    ""
+  workshop_user:      True
+  workshop_materials: True
+
+

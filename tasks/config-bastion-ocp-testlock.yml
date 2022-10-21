@@ -1,0 +1,14 @@
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  block:
+
+      - name: "xtoph_ocp4: config-bastion-ocp-testlock : determine if deployment is locked '({{ xtoph_ocp4.ocp.creds_dir }}/xtoph_ocp4_deployment.lock }})"
+        stat: path="{{ xtoph_ocp4.ocp.creds_dir }}/xtoph_ocp4_deployment.lock"
+        register: deployment_lock
+      
+      - set_fact:
+          workshop_lock: "{{ deployment_lock.stat.exists }}"
+      
+      - debug: var=workshop_lock
+

@@ -1,0 +1,74 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+
+      #
+      #    In combination with config-bastion-desktop-gui, enabling
+      #    cockpit can provide you html5 based GUI desktop with
+      #    firefox/chrome to access the cluster web console.
+      #
+
+      - name: "xtoph_ocp4 : config-bastion-cockpit : populate service facts"
+        service_facts:
+
+      - name: "xtoph_ocp4 : config-bastion-cockpit : yum install packages"
+        yum: name=cockpit,sos state=installed
+        register: result
+        retries: 10
+        until: result is succeeded
+        delay: 5
+      
+      - name: "xtoph_ocp4 : config-bastion-cockpit : create systemd drop-in directory"
+        file:
+          path: "/etc/systemd/system/cockpit.socket.d/"
+          mode: "0755"
+          owner: "root"
+          group: "root"
+          state: directory
+      
+      - name: "xtoph_ocp4 : config-bastion-cockpit : deploy custom configuration when cockpit_port != ''"
+        vars:
+          - p_port: "{{ xtoph_ocp4.bastion.cockpit_port }}"
+        template:
+          src:  "cockpit-listen-conf.j2"
+          dest: "/etc/systemd/system/cockpit.socket.d/listen.conf"
+          owner: root
+          group: root
+          mode: 0644
+        register: cockpit_result
+        when: 
+          - xtoph_ocp4.bastion.cockpit_port != ""
+          - xtoph_ocp4.bastion.cockpit_port != "9090"
+        notify: restart_cockpit
+
+
+
+      - block:
+      
+            - name: "xtoph_ocp4 : config-bastion-cockpit : firewalld service enable"
+              firewalld:
+                service: "cockpit"
+                immediate: yes
+                permanent: yes
+                state: enabled
+            
+            - name: "xtoph_ocp4 : config-bastion-cockpit : firewalld custom service enable when cockpit_port != ''"
+              firewalld:
+                port: "{{ xtoph_ocp4.bastion.cockpit_port }}/tcp"
+                immediate: yes
+                permanent: yes
+                state: enabled
+              when: xtoph_ocp4.bastion.cockpit_port != ""
+            
+            - name: "xtoph_ocp4 : config-bastion-cockpit : xtoph_ocp4 : config-bastion-cockpit : firewalld daemon restart"
+              service: name="cockpit.socket" state=restarted enabled=yes daemon-reload=yes
+      
+        when: 
+          - ansible_facts['services']['firewalld.service']['state'] is defined
+          - ansible_facts['services']['firewalld.service']['state'] == 'running'
+

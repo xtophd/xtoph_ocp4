@@ -1,0 +1,32 @@
+{
+ "id": "{{ t_profile }}-{{ t_name }}",
+ "name": "{{ t_profile}}-{{ t_name }} server",
+ "ignition_id": "{{ t_profile }}.ign",
+ "boot": {
+  "kernel": "/assets/{{ t_kernel }}",
+  "initrd": [
+   "/assets/{{ t_initramfs }}"
+   ],
+   "args": [
+    "ip={{ t_network }}",
+{% if t_bond != "" %}
+    "bond={{ t_bond }}",
+{% endif %}
+    "rd.neednet=1",
+    "console=tty0",
+    "usb-storage.delay_use={{ t_usbdelay }}",
+    "coreos.inst=yes",
+    "coreos.inst.install_dev={{ t_storage }}",
+    "coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_bios }}",
+{% if t_rootfs != "" %}
+    "coreos.inst.insecure=yes",
+    "coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }}",
+{% endif %}
+{% if t_loader == "efi" %}
+    "coreos.inst.ignition_url=http://{{ t_addr}}:{{ t_port }}/ignition?mac=$net_default_mac"
+{% else %}
+    "coreos.inst.ignition_url=http://{{ t_addr}}:{{ t_port }}/ignition?mac=${mac:hexhyp}"
+{% endif %}
+   ]
+ }
+}

@@ -1,0 +1,33 @@
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+
+      #
+      # We need some Ansible facts for tasks below
+      #
+
+
+
+      - setup:
+
+
+      - block:
+      
+            - name: "xoph_ocp4 : config-bastion-desktop-chrome : configure yum repo"
+              yum_repository:
+                name:        "google-chrome"
+                description: "Google Chrome Broswer"
+                baseurl:     "http://dl.google.com/linux/chrome/rpm/stable/x86_64"
+                enabled:     "yes"
+                gpgcheck:    "no"
+            
+            - name: "xoph_ocp4 : config-bastion-desktop-chrome : package installation"
+              yum: 
+                name:  "google-chrome-stable"
+                state: present
+      
+        when:
+          - ansible_distribution == "RedHat"
+          - ansible_distribution_major_version == "8"

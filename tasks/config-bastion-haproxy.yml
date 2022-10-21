@@ -1,0 +1,341 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-haproxy : populate service facts"
+        service_facts:
+
+
+
+      #
+      #    Install haproxy packages
+      #
+    
+    
+    
+      - name: "xtoph_ocp4 : config-bastion-haproxy : package installation"
+        yum: name=haproxy state=installed
+
+
+
+      #
+      #    Set SELinux boolean to allow haproxy
+      #    to work on any port
+      #
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-haproxy : test whether SELinux is enabled"
+        command: /usr/sbin/selinuxenabled
+        ignore_errors: yes
+        register: selinux_status
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-haproxy : add persistant SELINUX boolean"
+        shell: setsebool -P haproxy_connect_any on
+        when: selinux_status.rc == 0
+
+
+
+      ##
+      ##    Create the haproxy config by assembling
+      ##    various chunks (fragments) from templates
+      ##
+      ##    NOTE: This method does not play nice
+      ##          with other services that might want
+      ##          to use haproxy.  It's only meant
+      ##          for haproxy on the bastion host.
+      ##
+    
+      ##
+      ##    Clean fragment directory
+      ##
+
+
+    
+      - name: "xtoph_ocp4 : config-bastion-haproxy : clean cfg fragment directory"
+        shell:
+          cmd: |
+            if [[ -d "/etc/haproxy/cfg-fragments" ]] ; then rm -rf /etc/haproxy/cfg-fragments ; fi
+    
+      - name: "xtoph_ocp4 : config-bastion-haproxy : create fresh cfg fragment directory"
+        file:
+          path: /etc/haproxy/cfg-fragments
+          mode: "0755"
+          state: directory
+
+
+
+      ##
+      ##    Debloy the base and enable
+      ##    the stats config pages
+      ##
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-haproxy : deploy default config"
+        template:
+          src: "haproxy-defaults.j2"
+          dest: "/etc/haproxy/cfg-fragments/10-defaults.cfg"
+          owner: root
+    
+      - name: "xtoph_ocp4 : config-bastion-haproxy : deploy stats config"
+        vars:
+          - p_ip:       "*"
+          - p_port:     "8404"
+          - p_order:    "15"
+        template:
+          src: "haproxy-stats.j2"
+          dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-stats.cfg"
+          owner: root
+
+
+ 
+      ##
+      ##    OCP API service
+      ##
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-haproxy : api server frontends"
+        vars:
+          - p_type:     "api"
+          - p_ip:       "*"
+          - p_port:     "6443"
+          - p_order:    "20"
+          - p_cname:    "{{ xtoph_ocp4.ocp.clustername }}"
+        template:
+          src: "haproxy-frontend-backend.j2"
+          dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}.cfg"
+          owner: root
+
+      - name: "xtoph_ocp4 : config-bastion-haproxy : api server backends"
+        vars:
+          - p_type:     "api"
+          - p_ip:       "*"
+          - p_port:     "6443"
+          - p_order:    "25"
+          - p_item:     "{{ item }}"
+          - p_name:     "{{ hostvars[item]['inventory_hostname_short']}}"
+          - p_addr:     "{{ hostvars[item]['h_pubIP'] }}"
+        template:
+          src: "haproxy-host-entry.j2"
+          dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}-{{ p_name }}.cfg"
+          owner: root
+          group: root
+          mode: 644
+        loop: "{{ groups['myMasters'] + groups['myBootstrap'] }}"
+
+
+ 
+      ##
+      ##    OCP Config Service
+      ## 
+
+
+    
+      - name: "xtoph_ocp4 : config-bastion-haproxy : config server frontends"
+        vars:
+          - p_type:     "config"
+          - p_ip:       "*"
+          - p_port:     "22623"
+          - p_order:    "30"
+          - p_cname:    "{{ xtoph_ocp4.ocp.clustername }}"
+        template:
+          src: "haproxy-frontend-backend.j2"
+          dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}.cfg"
+          owner: root
+    
+      - name: "xtoph_ocp4 : config-bastion-haproxy : config server backends"
+        vars:
+          - p_type:     "config"
+          - p_ip:       "*"
+          - p_port:     "22623"
+          - p_order:    "35"
+          - p_item:     "{{ item }}"
+          - p_name:     "{{ hostvars[item]['inventory_hostname_short']}}"
+          - p_addr:     "{{ hostvars[item]['h_pubIP'] }}"
+        template:
+          src: "haproxy-host-entry.j2"
+          dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}-{{ p_name }}.cfg"
+          owner: root
+          group: root
+          mode: 644
+        loop: "{{ groups['myMasters'] + groups['myBootstrap'] }}"
+
+
+
+      ##
+      ##    Frontend HTTP, HTTPS Service
+      ##
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-haproxy : http server frontend"
+        vars:
+          - p_type:     "http"
+          - p_ip:       "*"
+          - p_port:     "80"
+          - p_order:    "40"
+          - p_cname:    "{{ xtoph_ocp4.ocp.clustername }}"
+        template:
+          src: "haproxy-frontend-backend.j2"
+          dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}.cfg"
+          owner: root
+
+      - name: "xtoph_ocp4 : config-bastion-haproxy : https server frontend"
+        vars:
+          - p_type:     "https"
+          - p_ip:       "*"
+          - p_port:     "443"
+          - p_order:    "50"
+          - p_cname:    "{{ xtoph_ocp4.ocp.clustername }}"
+        template:
+          src: "haproxy-frontend-backend.j2"
+          dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}.cfg"
+          owner: root
+
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  block:
+
+
+
+      ##
+      ##    Backend HTTP, HTTPS Service
+      ##
+
+      - name: "xtoph_ocp4 : config-bastion-haproxy : http server backends"
+        vars:
+          - p_type:     "http"
+          - p_ip:       "*"
+          - p_port:     "80"
+          - p_order:    "45"
+          - p_item:     "{{ item }}"
+          - p_name:     "{{ hostvars[item]['inventory_hostname_short']}}"
+          - p_addr:     "{{ hostvars[item]['h_pubIP'] }}"
+        template:
+          src: "haproxy-host-entry.j2"
+          dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}-{{ p_name }}.cfg"
+          owner: root
+          group: root
+          mode: 644
+        loop: "{{ groups['myWorkers'] + groups['myMasters'] }}"
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-haproxy : https server backends"
+        vars:
+          - p_type:     "https"
+          - p_port:     "443"
+          - p_ip:       "*"
+          - p_order:    "55"
+          - p_item:     "{{ item }}"
+          - p_name:     "{{ hostvars[item]['inventory_hostname_short']}}"
+          - p_addr:     "{{ hostvars[item]['h_pubIP'] }}"
+        template:
+          src: "haproxy-host-entry.j2"
+          dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}-{{ p_name }}.cfg"
+          owner: root
+          group: root
+          mode: 644
+        loop: "{{ groups['myWorkers'] + groups['myMasters'] }}"
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+
+      ##
+      ##    Assemble all the config fragments in
+      ##    a single /etc/haproxy/haproxy.cfg
+      ##
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-haproxy : assemble config fragments"
+        assemble:
+          src: "/etc/haproxy/cfg-fragments"
+          dest: "/etc/haproxy/haproxy.cfg"
+          owner: root
+          group: root
+          mode: 644
+    
+    
+    
+      ##
+      ##    Config and enable haproxy service
+      ##
+    
+    
+    
+      - name: "xtoph_ocp4 : config-bastion-haproxy : create systemd override directory"
+        file:
+          path: /etc/systemd/system/haproxy.service.d
+          mode: "0755"
+          state: directory
+    
+      - name: "xtoph_ocp4 : config-bastion-haproxy : set systemd overrides"
+        template:
+          src: "haproxy-systemd-overrides.j2"
+          dest: "/etc/systemd/system/haproxy.service.d/overrides.conf"
+          owner: root
+          group: root
+          mode: 644
+    
+      - name: "xtoph_ocp4 : config-bastion-haproxy : restart service"
+        service: name=haproxy state=restarted enabled=yes daemon_reload=yes
+    
+      - name: "xtoph_ocp4 : config-bastion-haproxy : add firewalld service rules"
+        firewalld:
+          service: "{{ item }}"
+          immediate: yes
+          permanent: yes
+          state: enabled
+        with_items:
+          - "http"
+          - "https"
+        when: 
+          - ansible_facts['services']['firewalld.service']['state'] is defined
+          - ansible_facts['services']['firewalld.service']['state'] == 'running'
+   
+ 
+    
+      ##
+      ##    Enable the firewall ports/services
+      ##
+
+
+    
+      - name: "xtoph_ocp4 : config-bastion-haproxy : add firewalld port rules"
+        firewalld:
+          port: "{{ item }}"
+          immediate: yes
+          permanent: yes
+          state: enabled
+        with_items:
+          - "8404/tcp"
+          - "8404/udp"
+          - "6443/tcp"
+          - "6443/udp"
+          - "22623/tcp"
+          - "22623/udp"
+        when: 
+          - ansible_facts['services']['firewalld.service']['state'] is defined
+          - ansible_facts['services']['firewalld.service']['state'] == 'running'
+
+

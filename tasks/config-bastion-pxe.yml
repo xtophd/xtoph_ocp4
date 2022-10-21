@@ -1,0 +1,170 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+
+      #
+      # We need some Ansible facts for tasks below
+      #
+
+      - setup:
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : populate service facts"
+        service_facts:
+    
+      - debug:
+          msg: "Ansible Facts: {{ ansible_distribution }} {{ ansible_distribution_major_version  }}"
+
+
+      
+      - name: "xtoph_ocp4 : config-bastion-pxe : package installation"
+        yum: name=tftp-server,ipxe-bootimgs,syslinux-tftpboot,yum-utils state=installed
+    
+      - name: "xtoph_ocp4 : config-bastion-pxe : create tftpboot directories"
+        file:
+          path: "{{ item }}"
+          mode: "0755"
+          state: directory
+        with_items:
+          - "/var/lib/tftpboot/pxelinux"
+          - "/var/lib/tftpboot/efi"
+
+
+
+      ##
+      ##    PXE->GRUB setup for UEFI based deployments
+      ##
+    
+    
+    
+      - name: "xtoph_ocp4 : config-bastion-pxe : clean-up efi directory /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi"
+        shell:
+          cmd: |
+            if [[ -d "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi" ]] ; then rm -rf /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi ; fi
+    
+      - name: "xtoph_ocp4 : config-bastion-pxe : create fresh efi work directory"
+        file:
+          path="/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi"
+          mode="0755"
+          state=directory
+    
+      - name: "xtoph_ocp4 : config-bastion-pxe : create target efi directory"
+        file:
+          path="/var/lib/tftpboot/efi"
+          mode="0755"
+          state=directory
+
+
+
+      # 2021-07-14: Replaced with shell command below
+      #- name: "xtoph_ocp4 : config-bastion-pxe : download rpms (do not install) for efi artifacts"
+      #  yum: 
+      #    name: shim-x64,grub2-efi-x64
+      #    state: latest
+      #    download_dir: "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi"
+      #    download_only: yes 
+    
+      #    NOTE:  RHEL 8.4 installs shim & grub2 packages as part of @BASE
+      #           causing ansible yum module to fail downloading the rpms on a 
+      #           clean build, reverted to using shell
+
+
+
+      - name: "common-dhcp-setup : download rpms (do not install) for efi artifacts"
+        shell:
+          cmd: |
+            cd /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi;  yumdownloader {{ item }}
+        with_items:
+          - "shim-x64"
+          - "grub2-efi-x64"
+    
+      - name: "xtoph_ocp4 : config-bastion-pxe : unpack contents of rpms for efi artifacts"
+        shell:
+          cmd: |
+            cd /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi; rpm2cpio {{ item }}*.rpm | cpio -dimv
+        with_items:
+          - "shim-x64"
+          - "grub2-efi"
+    
+      - name: "xtoph_ocp4 : config-bastion-pxe : copy efi files to tftpboot (Red Hat)"
+        copy: 
+          src:   "{{ item }}"
+          dest:  "/var/lib/tftpboot/efi"
+          mode:  "0644"
+          owner: root
+          group: root
+          remote_src: yes
+        with_items:
+          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/redhat/shimx64.efi"
+          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/redhat/grubx64.efi"
+        when:
+          - ansible_distribution == "RedHat"
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : copy efi files to tftpboot (CentOS)"
+        copy: 
+          src:   "{{ item }}"
+          dest:  "/var/lib/tftpboot/efi"
+          mode:  "0644"
+          owner: root
+          group: root
+          remote_src: yes
+        with_items:
+          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/centos/shimx64.efi"
+          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/centos/grubx64.efi"
+        when:
+          - ansible_distribution == "CentOS"
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : deploy grub.cfg in tftpboot directory"
+        vars:
+          - p_nextsvr:   "{{ xtoph_ocp4.bastion.host_ip }}"
+          - p_http_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
+        template:
+          src:   "pxe-grub-config.j2"
+          dest:  "/var/lib/tftpboot/efi/grub.cfg"
+          mode:  "0644"
+          owner: root
+          group: root
+
+
+
+      ##
+      ##    PXE->iPXE setup for BIOS based deployments
+      ##
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : copy ipxe files to tftpboot"
+        copy: 
+          src:   "{{ item }}"
+          dest:  "/var/lib/tftpboot"
+          mode:  "0644"
+          owner: root
+          group: root
+          remote_src: yes
+        with_items:
+          - "/usr/share/ipxe/undionly.kpxe"
+          - "/usr/share/ipxe/ipxe.lkrn"
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : restart services"
+        service: name={{ item }} state=restarted enabled=yes masked=no
+        with_items:
+          - "tftp"
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : add firewalld services"
+        firewalld:
+          service: "{{ item }}"
+          immediate: yes
+          permanent: yes
+          state: enabled
+        with_items:
+          - "http"
+          - "https"
+          - "tftp"
+        when: 
+          - ansible_facts['services']['firewalld.service']['state'] is defined
+          - ansible_facts['services']['firewalld.service']['state'] == 'running'
+

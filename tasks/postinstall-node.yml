@@ -1,0 +1,63 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  throttle: 1
+  block:
+
+
+
+      - name: "xtoph_ocp4 : postinstall-node : wait for ssh alive"
+        wait_for:
+          host: "{{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+          connect_timeout: 5
+          port: 22
+          sleep: 15
+          state: started
+          timeout: 900
+
+
+
+      ##
+      ##    NOTE:  the technique of adding '| true' just ensures
+      ##           that regardless of what ssh-keygen finds, the
+      ##           result is 'true'.  This should remove the red
+      ##           errors we ignore from the output
+      ##
+    
+    
+    
+      - name: "xtoph_ocp4 : postinstall-node : cleanup ssh keys in knownhosts"
+        vars:
+          - p_item:      "{{ inventory_hostname }}"
+          - p_name:      "{{ inventory_hostname_short }}"
+          - p_addr:      "{{ h_pubIP }}"
+          - p_fqdn:      "{{ p_name }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+          - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
+        shell:
+          cmd: |
+            ssh-keygen -R "{{ p_item }}" | true
+            ssh-keygen -R "{{ p_name }}" | true
+            ssh-keygen -R "{{ p_fqdn }}" | true
+            ssh-keygen -R "{{ p_addr }}" | true
+        ignore_errors: yes
+
+
+
+      - name: "xtoph_ocp4 : postinstall-node : add new ssh keys for node"
+        vars:
+          - p_item:      "{{ inventory_hostname }}"
+          - p_name:      "{{ inventory_hostname_short }}"
+          - p_addr:      "{{ h_pubIP }}"
+          - p_fqdn:      "{{ p_name }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+          - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
+        shell:
+          cmd: |
+            ssh-keyscan "{{ p_name }}" >> /root/.ssh/known_hosts
+            ssh-keyscan "{{ p_fqdn }}" >> /root/.ssh/known_hosts
+        ignore_errors: yes
+
+
+

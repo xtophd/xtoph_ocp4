@@ -1,0 +1,8 @@
+_debug:            False
+_cleanup:          True
+_throttle:         "3"
+
+_bastion_profile:  "--required--"
+_ocp_profile:      "--required--"
+_network_profile:  "--required--"
+

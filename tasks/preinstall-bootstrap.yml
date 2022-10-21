@@ -1,0 +1,40 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+
+      #
+      #    A generic set of tests to verify bastion services are up
+      #    prior to starting bootstrap deployment
+      #
+
+
+    
+      - name: "xtoph_ocp4 : preinstall-bootstrap : test DNS port on bastion {{ f_bastion_ip }}"
+        when: xtoph_ocp4.bastion.dns == true
+        wait_for:
+          host: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+          connect_timeout: 5
+          delay: 3
+          port: 53 
+          sleep: 1
+          state: started
+          timeout: 30
+
+
+    
+      - name: "xtoph_ocp4 : preinstall-bootstrap : bootstrap : test MATCHBOX port on bastion ({{ f_bastion_ip }})"
+        when: xtoph_ocp4.bastion.matchbox == true
+        wait_for:
+          host: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+          connect_timeout: 5
+          delay: 3
+          port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
+          sleep: 1
+          state: started
+          timeout: 30
+

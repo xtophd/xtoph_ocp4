@@ -1,0 +1,63 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  block:
+
+
+
+      #
+      #    Because the bootstrap disables itself once
+      #    masters are online, test if masters already 
+      #    provide config-service.  Otherwise, you
+      #    wind up waiting for the bootstrap which will
+      #    never come.
+      #
+
+
+
+      - name: "xtoph_ocp4 : preinstall-masters : verify CONFIG SERVER port on masters is NOT active"
+        ignore_errors: true
+        wait_for:
+          host: "{{ item }}"
+          connect_timeout: 5 
+          delay: 3
+          port: "22623"
+          sleep: 1
+          state: started
+          timeout: 15
+        register: config_service_master
+        loop: "{{ ansible_play_batch }}"
+
+      - debug: var=config_service_master
+        when: xtoph_ocp4._debug == true
+
+
+
+      #
+      #    Masters are not providing config-service, 
+      #    so we need to wait until the bootstrap 
+      #    does provide it.
+      #
+
+
+
+      - name: "xtoph_ocp4 : preinstall-masters : wait for  CONFIG SERVER port on bootstrap"
+        run_once: true
+        wait_for:
+          host: "{{ item }}"
+          connect_timeout: 5
+          delay: 3
+          port: "22623"
+          sleep: 1
+          state: started
+          timeout: 1800 
+        register: config_service_bootstrap
+        loop: "{{ groups['myBootstrap'] }}"
+        when: config_service_master.failed is defined
+
+      - debug: var=config_service_bootstrap
+        when: xtoph_ocp4._debug == true
+
+
+

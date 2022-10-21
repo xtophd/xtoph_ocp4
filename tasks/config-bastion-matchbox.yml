@@ -1,0 +1,364 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+
+      #
+      #    Use service_facts module to collect systemd info
+      #    We can then sanely test existence of units
+      #    Here are some sample debugs as well
+      #
+      #     - debug:
+      #         var: ansible_facts.services
+      #         var: ansible_facts.services["httpd.service"]
+      #
+      
+      
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : populate service facts"
+        service_facts:
+
+
+
+      #   
+      #    Create users and groups
+      #   
+      
+     
+ 
+      - name: "xtoph_ocp4 : config-bastion-matchbox : create matchbox group"
+        group:
+          name: "matchbox"
+          system: yes
+          state: present
+        
+      - name: "xtoph_ocp4 : config-bastion-matchbox : create matchbox user"
+        user:
+          name: "matchbox"
+          state: present
+          system: yes
+          password: "*"
+          group: "matchbox"
+
+
+
+      #   
+      #    Perform some cleanup from any previous attempted installs
+      #   
+      
+      
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : clean prior cfg directories"
+        shell:
+          cmd: |
+            if [[ -d "{{ item }}" ]] ; then rm -rf "{{ item }}" ; fi
+        with_items:
+          - "/var/lib/matchbox/groups"
+          - "/var/lib/matchbox/profiles"
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox create directories"
+        file:
+          path: "{{ item }}"
+          state: directory
+          owner: matchbox
+          group: matchbox
+          mode: "0755"
+        with_items:
+          - "/etc/matchbox"
+          - "/etc/matchbox/ssl"
+          - "/var/lib/matchbox/assets"
+          - "/var/lib/matchbox/groups"
+          - "/var/lib/matchbox/profiles"
+          - "/var/lib/matchbox/ignition"
+      
+      
+      
+      #   
+      #    Download matchbox software
+      #   
+            
+            
+            
+      - name: "xtoph_ocp4 : config-bastion-matchbox : stat software"
+        stat: 
+          path: "/usr/local/src/{{ xtoph_ocp4.matchbox_assets.filename }}"
+        register: test_matchbox_src
+
+      - name: "xtoph_ocp4 : config-bastion-matchbox : software download"
+        environment:
+          http_proxy:  "{{ xtoph_ocp4.ocp.http_proxy }}"
+          https_proxy: "{{ xtoph_ocp4.ocp.https_proxy }}"
+        get_url:
+          url:  "{{ xtoph_ocp4.matchbox_assets.url }}/{{ xtoph_ocp4.matchbox_assets.filename }}"
+          dest: "/usr/local/src/{{ xtoph_ocp4.matchbox_assets.filename }}"
+          mode: "0644"
+          timeout: 60
+        when: test_matchbox_src.stat.exists == false
+        register: matchbox_download
+        until: matchbox_download is not failed
+        retries: 5
+      
+      
+      
+      #   
+      #    Unpack matchbox software
+      #   
+      
+      
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : unpack software"
+        shell:
+          cmd: |
+            cd /usr/local/src
+            tar zxvf {{ xtoph_ocp4.matchbox_assets.filename }}
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : create self signed certs"
+        environment:
+          SAN: "DNS.1:{{ xtoph_ocp4.bastion.host_name }}.{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }},IP.1:{{ xtoph_ocp4.bastion.host_ip }}"
+        shell:
+          cmd: |
+            cd "/usr/local/src/{{ xtoph_ocp4.matchbox_assets.destdir }}/scripts/tls"
+            ./cert-gen
+      
+      
+      
+      #   
+      #    Install matchbox components
+      #   
+      
+      
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : install matchbox binary"
+        copy:
+          src:   "/usr/local/src/{{ xtoph_ocp4.matchbox_assets.destdir }}/matchbox"
+          dest:  "/usr/local/bin"
+          mode:  "0555"
+          owner: "matchbox"
+          group: "matchbox"
+          remote_src: yes
+
+      - name: "xtoph_ocp4 : config-bastion-matchbox : install matchbox self-signed certs"
+        copy:
+          src:   "/usr/local/src/{{ xtoph_ocp4.matchbox_assets.destdir }}/scripts/tls/{{ item }}"
+          dest:  "/etc/matchbox/ssl"
+          mode:  "0644"
+          owner: "matchbox"
+          group: "matchbox"
+          remote_src: yes
+        with_items:
+          - "server.crt"
+          - "server.key"
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : deploy systemd config"
+        vars:
+          - p_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
+        template:
+          src:   "matchbox-systemd.j2"
+          dest:  "/etc/systemd/system/matchbox.service"
+          mode:  "644"
+          owner: root
+          group: root
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : deploy installhelper script"
+        vars:
+          - p_addr:     "{{ xtoph_ocp4.bastion.host_ip }}"
+          - p_port:     "{{ xtoph_ocp4.bastion.matchbox_port }}"
+        template:
+          src:   "matchbox-installhelper.j2"
+          dest:  "/var/lib/matchbox/assets/installhelper.sh"
+          mode:  "644"
+          owner: matchbox
+          group: matchbox
+
+      
+      
+      #   
+      #    Download RHCOS assets
+      #   
+      
+      
+      
+      ##
+      ## ** NOTE **
+      ##
+      ##       'rootfs' and 'bios4k' was introduced in ocp-4.6 and previous releases won't have that asset defined
+      ##       so I am including some logic to maintain backwards compatability for a while.  hence
+      ##       the default ({}) empty set if rootfs or bios4k are undefined
+      ##
+      
+      
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : Red Hat CoreOS image stats"
+        stat:
+          path: "/var/lib/matchbox/assets/{{ item }}"
+        with_items:
+          - "{{ xtoph_ocp4.rhcos_assets.initramfs }}"
+          - "{{ xtoph_ocp4.rhcos_assets.kernel    }}"
+          - "{{ xtoph_ocp4.rhcos_assets.bios      }}"
+          - "{{ xtoph_ocp4.rhcos_assets.iso       }}"
+          - "{{ xtoph_ocp4.rhcos_assets.rootfs | default([]) }}"
+          - "{{ xtoph_ocp4.rhcos_assets.bios4k | default([]) }}"
+        register: asset_stats
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : Red Hat CoreOS image download"
+        environment:
+          http_proxy:  "{{ xtoph_ocp4.ocp.http_proxy }}"
+          https_proxy: "{{ xtoph_ocp4.ocp.https_proxy }}"
+        get_url:
+          url: "{{ xtoph_ocp4.rhcos_assets.url }}/{{ item }}"
+          dest: "/var/lib/matchbox/assets/{{ item }}"
+          owner: matchbox
+          group: matchbox
+          mode: "0644"
+          timeout: 60
+          force: no
+        loop: "{{ asset_stats.results | rejectattr('stat.exists') | map(attribute='item') | list }}"
+        register: coreos_download
+        until: coreos_download is not failed
+        retries: 5
+      
+      
+      
+      #   
+      #    Ensure SELinux policies on files 
+      #    and directories are correct
+      #   
+      
+      
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : SELinux restore contexts on doc-root"
+        shell: restorecon -R /var/lib/matchbox 
+      
+      
+      
+      #   
+      #    Stop and Start Services
+      #   
+      
+      
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : stop, disable and mask possible conflicting service (httpd)"
+        service: name="httpd" state=stopped enabled=no masked=yes daemon_reload=yes
+        when: ansible_facts.services["httpd.service"] is defined
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : stop, disable and mask possible conflicting service (nginx)"
+        service: name="nginx" state=stopped enabled=no masked=yes daemon_reload=yes
+        when: ansible_facts.services["nginx.service"] is defined
+      
+      - name: "xtoph_ocp4 : config-bastion-matchbox : add firewalld ports and services"
+        firewalld:
+          port: "{{ item }}"
+          immediate: yes
+          permanent: yes
+          state: enabled
+        with_items:
+          - "{{ xtoph_ocp4.bastion.matchbox_port }}/tcp"
+          - "{{ xtoph_ocp4.bastion.matchbox_port }}/udp"
+        when: 
+          - ansible_facts['services']['firewalld.service']['state'] is defined
+          - ansible_facts['services']['firewalld.service']['state'] == 'running'
+
+
+
+#
+#    Nodes: deploy configuration files for OCP nodes
+#
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  block:
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-matchbox : deploy bootstrap configs"
+        vars:
+          - t_profile:   "bootstrap"
+        template:
+          src:   "{{item.src}}"
+          dest:  "{{item.dest}}"
+          mode:  "644"
+          owner: matchbox
+          group: matchbox
+        with_items:
+          - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
+          - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
+        when: 
+          - inventory_hostname in groups['myBootstrap']
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-matchbox : deploy master configs"
+        vars:
+          - t_profile:   "master"
+        template:
+          src:   "{{item.src}}"
+          dest:  "{{item.dest}}"
+          mode:  "644"
+          owner: matchbox
+          group: matchbox
+        with_items:
+          - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
+          - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
+        when: 
+          - inventory_hostname in groups['myMasters']
+     
+
+ 
+      - name: "xtoph_ocp4 : config-bastion-matchbox : deploy worker configs"
+        vars:
+          - t_profile:   "worker"
+        template:
+          src:   "{{item.src}}"
+          dest:  "{{item.dest}}"
+          mode:  "644"
+          owner: matchbox
+          group: matchbox
+        with_items:
+          - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
+          - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
+        when: 
+          - inventory_hostname in groups['myWorkers']
+      
+
+
+  vars:
+    - t_name:      "{{ inventory_hostname_short }}"
+    - t_addr:      "{{ xtoph_ocp4.bastion.host_ip }}"
+    - t_port:      "{{ xtoph_ocp4.bastion.matchbox_port }}"
+    - t_bond:      "{{ xtoph_ocp4.rhcos.bond_dev }}"
+    - t_mac:       "{{ xtoph_ocp4.rhcos.nic_mac }}"
+    - t_network:   "{{ xtoph_ocp4.rhcos.nic_dev }}"
+    - t_storage:   "{{ xtoph_ocp4.rhcos.blk_dev }}"
+    - t_usbdelay:  "{{ xtoph_ocp4.rhcos.usb_delay }}"
+    - t_loader:    "{{ xtoph_ocp4.rhcos.bootloader }}"
+    - t_bios:      "{{ xtoph_ocp4.rhcos_assets.bios }}"
+    - t_initramfs: "{{ xtoph_ocp4.rhcos_assets.initramfs }}"
+    - t_kernel:    "{{ xtoph_ocp4.rhcos_assets.kernel }}"
+    - t_rootfs:    "{{ xtoph_ocp4.rhcos_assets.rootfs }}"
+
+
+
+
+#
+#    myBastion: restart the matchbox service
+#
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+      - name: "xtoph_ocp4 : config-bastion-matchbox : enable and restart services"
+        run_once: true
+        service: name="{{ item }}" state=restarted enabled=yes masked=no daemon_reload=yes
+        with_items:
+          - "matchbox"
+
+      
+

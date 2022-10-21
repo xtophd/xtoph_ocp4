@@ -1,0 +1,67 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+      - name: "xtoph_ocp4 : config-bastion-httpd : gather service facts"
+        service_facts:
+    
+      - name: "xtoph_ocp4 : config-bastion-httpd : install additional packages"
+        yum: name=httpd state=installed
+    
+      - name: "xtoph_ocp4 : config-bastion-httpd : deploy httpd configuration"
+        vars:
+          - p_port: "8080"
+        template:
+          src: "httpd-conf.j2"
+          dest: "/etc/httpd/conf/httpd.conf"
+          owner: root
+          group: root
+          mode: 0644
+    
+      - name: "xtoph_ocp4 : config-bastion-httpd : SELinux restore contexts on doc-root"
+        shell: restorecon -R /var/www/html 
+    
+    
+    
+      # Use service_facts module to collect systemd info
+      # We can then sanely test existence of units
+      # Here are some sample debugs as well
+      #
+      #  - debug:
+      #      var: ansible_facts.services
+      #      var: ansible_facts.services["httpd.service"]
+    
+    
+     
+      - name: "xtoph_ocp4 : config-bastion-httpd : populate system service facts"
+        service_facts:
+    
+      - name: "xtoph_ocp4 : config-bastion-httpd : stop, disable and mask possible conflicting service (matchbox)"
+        service: name="matchbox" state=stopped enabled=no masked=yes daemon_reload=yes
+        when: ansible_facts.services["matchbox.service"] is defined
+    
+      - name: "xtoph_ocp4 : config-bastion-httpd : stop, disable and mask possible conflicting service (nginx)"
+        service: name="nginx" state=stopped enabled=no masked=yes daemon_reload=yes
+        when: ansible_facts.services["nginx.service"] is defined
+    
+      - name: "xtoph_ocp4 : config-bastion-httpd : enable and restart services"
+        service: name="{{ item }}" state=restarted enabled=yes masked=no daemon_reload=yes
+        with_items:
+          - "httpd"
+    
+      - name: "xtoph_ocp4 : config-bastion-httpd : add firewalld ports"
+        firewalld:
+          port: "{{ item }}"
+          immediate: yes
+          permanent: yes
+          state: enabled
+        with_items:
+          - "8080/tcp"
+        when: 
+          - ansible_facts['services']['firewalld.service']['state'] is defined
+          - ansible_facts['services']['firewalld.service']['state'] == 'running'
+
