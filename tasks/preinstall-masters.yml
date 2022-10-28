@@ -27,7 +27,7 @@
           state: started
           timeout: 15
         register: config_service_master
-        loop: "{{ ansible_play_batch }}"
+        loop: "{{ xtoph_ocp4._cluster_masters }}"
 
       - debug: var=config_service_master
         when: xtoph_ocp4._debug == true
@@ -53,7 +53,7 @@
           state: started
           timeout: 1800 
         register: config_service_bootstrap
-        loop: "{{ groups['myBootstrap'] }}"
+        loop: "{{ xtoph_ocp4._cluster_bootstrap }}"
         when: config_service_master.failed is defined
 
       - debug: var=config_service_bootstrap

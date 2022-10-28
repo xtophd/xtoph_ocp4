@@ -1,8 +1,10 @@
 _debug:            False
 _cleanup:          True
 _throttle:         "3"
+_tmp_dir:          "{{ xtoph_vars.tmp_dir }}"
 
 _bastion_profile:  "--required--"
 _ocp_profile:      "--required--"
 _network_profile:  "--required--"
+_rhcos_profile:    "--required--"
 

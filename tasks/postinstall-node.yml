@@ -5,7 +5,9 @@
   throttle: 1
   block:
 
-
+      - debug:
+          msg: "DEBUG: about to test ssh port on {{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}" 
+        when: xtoph_ocp4._debug == true
 
       - name: "xtoph_ocp4 : postinstall-node : wait for ssh alive"
         wait_for:

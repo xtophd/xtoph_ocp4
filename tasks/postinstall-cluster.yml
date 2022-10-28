@@ -24,7 +24,7 @@
               exit 0
             else
               for i in `{{ oc_cmd }} get csr | grep -i pending | awk '{print $1}'`; do 
-                oc adm certificate approve $i
+                {{ oc_cmd }} adm certificate approve $i
                 sleep 1
               done
               exit 1
@@ -33,6 +33,52 @@
         until:  result.rc == 0
         retries: 600
         delay: 5
+
+
+
+      ##
+      ##    For Openshift v4.2 we have to set the registry operator 
+      ##    to managed in order for installation to complete with
+      ##    all operator availability = true
+      ##
+
+
+
+      - name: "xtoph_ocp4 : postinstall-cluster : wait for configs.imageregistry for OCP < v4.3, approve CSRs as needed"
+        run_once: true
+        shell:
+          cmd: |
+            export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+            {{ oc_cmd }} get configs.imageregistry.operator.openshift.io/cluster 2>/dev/null
+            if [[ $? != 0 ]]; then 
+              for i in `{{ oc_cmd }} get csr | grep -i pending | awk '{print $1}'`; do 
+                {{ oc_cmd }} adm certificate approve $i
+                sleep 1
+              done
+              exit 1 
+            else 
+              exit 0 
+            fi
+        register: result
+        until:  result.rc == 0
+        retries: 600
+        delay: 5
+        when: 
+          - xtoph_ocp4.ocp.version is version('4.3',operator='<')
+
+      - name: "xtoph_ocp4 : postinstall-cluster : config NFS PV/PVC and set image-registry to managed for OCP < v4.3"
+        run_once: true
+        shell:
+          cmd: |
+            export KUBECONFIG="{{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeconfig"
+            {{ oc_cmd }} apply -f /usr/local/etc/workshop-registryPV.yaml
+            {{ oc_cmd }} patch configs.imageregistry.operator.openshift.io/cluster --type merge -p '{"spec":{"storage":{"pvc":{"claim":""}}}}' 
+            sleep 3
+            {{ oc_cmd }} patch configs.imageregistry.operator.openshift.io/cluster --type merge -p '{"spec":{"managementState":"Managed"}}'
+        when: 
+          - xtoph_ocp4.ocp.version is version('4.3',operator='<')
+          - xtoph_ocp4.bastion.nfs == true
+          - xtoph_ocp4.bastion.workshop_materials == true
 
 
 
@@ -54,7 +100,7 @@
             {{ oc_cmd }} get clusteroperators --no-headers | awk '{print $3}' | grep -i false 
             if [[ $? == 0 ]]; then 
               for i in `{{ oc_cmd }} get csr | grep -i pending | awk '{print $1}'`; do 
-                oc adm certificate approve $i
+                {{ oc_cmd }} adm certificate approve $i
                 sleep 1
               done
               exit 1 
@@ -72,7 +118,7 @@
           cmd: |
             export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
             for i in `{{ oc_cmd }} get csr | grep -i pending | awk '{print $1}'`; do
-              oc adm certificate approve $i
+              {{ oc_cmd }} adm certificate approve $i
               sleep 1
             done
         register: result

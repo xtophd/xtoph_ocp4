@@ -174,11 +174,50 @@
       ##    so debug/dump it to the screen
       ##
 
-      - name: "main.yml : debug"
+      - name: "main.yml : DEBUG"
         debug: var=xtoph_ocp4
+
+
+
+      ##
+      ##    Save a copy of the dictionary to disk
+      ##
+
+      - delegate_to: localhost
+        block:
+
+            - name: "save-dictionary: DEBUG details"
+              debug:
+                msg:
+                - "temp workspace = {{ xtoph_ocp4._tmp_dir }}/xtoph_ocp4.yml"
+              when: xtoph_ocp4._debug == true
+      
+            - name: "save-dictionary: verify directory exists"
+              file:
+                path="{{ xtoph_ocp4._tmp_dir }}"
+                mode="0755"
+                state=directory
+      
+            - name: "save-dictionary: delete old copy of saved dictionary"
+              file:
+                path="{{ xtoph_ocp4._tmp_dir }}/xtoph-ocp4.yml"
+                mode="0755"
+                state=absent
+      
+            - name: "save-dictionary: save state of xtoph_ocp4 dictionary"
+              copy:
+                dest:     "{{ xtoph_ocp4._tmp_dir }}/xtoph_ocp4.yml"
+                content:  "{{ xtoph_ocp4 | to_nice_yaml }}"
+
+
+
+      ##
+      ##    Now we can set the flag that indicates processing is completed
+      ##
 
       - set_fact:
           _xtoph_ocp4_dict_processed: true
+
 
 
   when: _xtoph_ocp4_dict_processed is undefined
@@ -192,9 +231,6 @@
 ##    Jump to the compenent of this role
 ##    based on variable xtoph_ocp4_action
 ##
-
-
-- include_tasks: "save-dictionary.yml"
 
 - include_tasks: "config-bastion.yml"
   when:
@@ -223,6 +259,7 @@
 - include_tasks: "preuninstall-node-shutdown.yml"
   when:
     - xtoph_ocp4_action == "preuninstall-node-shutdown"
+
 
 
 ##

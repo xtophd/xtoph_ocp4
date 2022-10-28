@@ -55,7 +55,7 @@
           owner: root
           group: root
           mode: 644
-        when: inventory_hostname not in groups['myBastion']
+        when: inventory_hostname not in xtoph_ocp4._cluster_bastion
 
   vars:
     - p_name:      "{{ inventory_hostname_short }}"

@@ -15,8 +15,6 @@
       #
       #    Package installation
       #
-
-
       
       - name: "xtoph_ocp4 : config-bastion-dns : package installation"
         yum: name=dnsmasq state=installed
@@ -30,8 +28,6 @@
       #    
       #    Cleanup any previous dnsmasq configs, IPs and hostnames   
       #    
-
-
       
       - name: "xtoph_ocp4 : config-bastion-dns : clean cfg directory"
         shell:
@@ -45,8 +41,6 @@
       #    inform people that the config parameters
       #    are in /etc/dnsmasq.d
       #
-     
-
  
       - name: "xtoph_ocp4 : config-bastion-dns : add comment to /etc/hosts"
         blockinfile:
@@ -67,8 +61,6 @@
       #    from toying with /etc/resolv.conf
       #
 
-
-
       - name: "xtoph_ocp4 : config-bastion-dns : disable network-manager /etc/resolv.conf adjustments"
         template:
           src:   "dns-resolv-fix.j2"
@@ -84,8 +76,6 @@
       #    Now deploy a /etc/resolv.conf that 
       #    points to our bastion dns server
       #
-     
-
  
       - name: "xtoph_ocp4 : config-bastion-dns : deploy resolv.conf"
         vars: 
@@ -95,9 +85,6 @@
           src:   "dns-resolv-conf.j2"
           dest:  "/etc/resolv.conf"
           owner: root
-
-
-
 
       - name: "xtoph_ocp4 : config-bastion-dns : deploy STANDARD options, API and WILDCARD"
         vars:
@@ -123,18 +110,12 @@
 
     
 
-#
-#    Nodes: deploy distinct configuration files for each OCP node
-#
-
-
-
-- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
-  block:
-
-
+      #
+      #    Nodes: deploy distinct configuration files for each OCP node
+      #
 
       - name: "xtoph_ocp4 : config-bastion-dns : deploy HOST entries"
+        run_once: false
         vars:
           - p_name:        "{{ inventory_hostname_short }}"
           - p_domain:      "{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
@@ -146,26 +127,35 @@
           owner: root
           group: root
           mode:  644
+
+
+
+      #
+      #    In order to maintain compatability with OCP version < 4.4, 
+      #    we need to create a few special records for etcd.
+      #    After the release of version 4.4, this is no longer necessary
+      #
+      #    NOTE: we use run_once in combination with a loop index to
+      #          to generate the appropriate etcd-index
+      #
     
-      - name: "xtoph_ocp4 : config-bastion-dns : deploy ETCD entries"
+      - name: "xtoph_ocp4 : config-bastion-dns : deploy ETCD srv entries for OCP versions < 4.4"
         vars:
-          - p_addr:        "{{ h_pubIP }}"
+          - p_addr:        "{{ hostvars[item]['h_pubIP'] }}"
           - p_domain:      "{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
-          - p_etcdName:    "{{ h_etcdName | default('') }}"
+          - p_etcdName:    "etcd-{{ p_index }}"
         template:
           src: "dnsmasq-etcd-entry.j2"
           dest: "/etc/dnsmasq.d/45-etcd-{{ p_etcdName }}.conf"
           owner: root
           group: root
           mode: 644
-        when:
-          - p_etcdName != ""
+        when: xtoph_ocp4.ocp.version is version('4.4',operator='<')
+        loop: "{{ xtoph_ocp4._cluster_masters }}"
+        loop_control: 
+          index_var: p_index
 
 
-
-- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
-  run_once: true
-  block:
 
       #
       #    Last couple of items:
@@ -218,5 +208,6 @@
            state: restarted 
            enabled: yes 
            daemon_reload: yes
+
 
 

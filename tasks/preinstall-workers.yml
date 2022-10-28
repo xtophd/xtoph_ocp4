@@ -14,5 +14,5 @@
           sleep: 5
           state: started
           timeout: 1800
-        loop: "{{ groups['myMasters'] | difference(['myBootstrap']) }}"
+        loop: "{{ xtoph_ocp4._cluster_masters | difference(xtoph_ocp4._cluster_bootstrap) }}"
 

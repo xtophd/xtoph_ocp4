@@ -7,8 +7,8 @@
 
 
 
-      - name: "xtoph_ocp4: config-bastion-ocp-unlock : remove '({{ workshop_extras.ocp_creds_dir }}/ocp-workshop-deployment.lock }})"
+      - name: "xtoph_ocp4: config-bastion-ocp-unlock : remove lock ({{ workshop_extras.ocp_creds_dir }}/xtoph_ocp4_deployment.lock)"
         file:
-          path:  "{{ xtoph_ocp4.ocp.creds_dir }}/xtoph_ocp4_deployment.lock }}""
+          path:  "{{ xtoph_ocp4.ocp.creds_dir }}/xtoph_ocp4_deployment.lock"
           state: absent
 

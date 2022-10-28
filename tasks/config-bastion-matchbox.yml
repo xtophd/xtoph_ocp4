@@ -288,7 +288,7 @@
           - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
           - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
         when: 
-          - inventory_hostname in groups['myBootstrap']
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap
 
 
 
@@ -305,7 +305,7 @@
           - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
           - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
         when: 
-          - inventory_hostname in groups['myMasters']
+          - inventory_hostname in xtoph_ocp4._cluster_masters
      
 
  
@@ -322,7 +322,7 @@
           - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
           - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
         when: 
-          - inventory_hostname in groups['myWorkers']
+          - inventory_hostname in xtoph_ocp4._cluster_workers
       
 
 
@@ -339,7 +339,7 @@
     - t_bios:      "{{ xtoph_ocp4.rhcos_assets.bios }}"
     - t_initramfs: "{{ xtoph_ocp4.rhcos_assets.initramfs }}"
     - t_kernel:    "{{ xtoph_ocp4.rhcos_assets.kernel }}"
-    - t_rootfs:    "{{ xtoph_ocp4.rhcos_assets.rootfs }}"
+    - t_rootfs:    "{{ xtoph_ocp4.rhcos_assets.rootfs | default('') }}"
 
 
 

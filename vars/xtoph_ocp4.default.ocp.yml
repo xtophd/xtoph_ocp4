@@ -153,7 +153,7 @@
   wildcard:         "apps"
   wildcard_fqdn:    "--required--"
   user:             "cloud-user"
+  version:          "4.1"
   http_proxy:       ""
   https_proxy:      ""
-  version:          "4.1"
 
