@@ -11,8 +11,7 @@
   version:          "{{ workshop_vars.ocp_version         | default('4.11')         }}"
   http_proxy:       "{{ workshop_vars.http_proxy          | default('')             }}"
   https_proxy:      "{{ workshop_vars.https_proxy         | default('')             }}"
-
-
+  no_proxy:         "{{ workshop_vars.no_proxy            | default('')             }}"
 
 "ocp-4.11":
   admin_user:       "cloud-admin"
@@ -26,6 +25,7 @@
   version:          "4.11"
   http_proxy:       ""
   https_proxy:      ""
+  no_proxy:         ""
 
 "ocp-4.10":
   admin_user:       "cloud-admin"
@@ -39,6 +39,7 @@
   version:          "4.10"
   http_proxy:       ""
   https_proxy:      ""
+  no_proxy:         ""
 
 "ocp-4.9":
   admin_user:       "cloud-admin"
@@ -52,6 +53,7 @@
   version:          "4.9"
   http_proxy:       ""
   https_proxy:      ""
+  no_proxy:         ""
 
 "ocp-4.8":
   admin_user:       "cloud-admin"
@@ -65,6 +67,7 @@
   version:          "4.8"
   http_proxy:       ""
   https_proxy:      ""
+  no_proxy:         ""
 
 "ocp-4.7":
   admin_user:       "cloud-admin"
@@ -78,6 +81,7 @@
   version:          "4.7"
   http_proxy:       ""
   https_proxy:      ""
+  no_proxy:         ""
 
 "ocp-4.6":
   admin_user:       "cloud-admin"
@@ -91,6 +95,7 @@
   version:          "4.6"
   http_proxy:       ""
   https_proxy:      ""
+  no_proxy:         ""
 
 "ocp-4.5":
   admin_user:       "cloud-admin"
@@ -104,6 +109,7 @@
   version:          "4.5"
   http_proxy:       ""
   https_proxy:      ""
+  no_proxy:         ""
 
 "ocp-4.4":
   admin_user:       "cloud-admin"
@@ -117,6 +123,7 @@
   version:          "4.4"
   http_proxy:       ""
   https_proxy:      ""
+  no_proxy:         ""
 
 "ocp-4.3":
   admin_user:       "cloud-admin"
@@ -130,6 +137,7 @@
   version:          "4.3"
   http_proxy:       ""
   https_proxy:      ""
+  no_proxy:         ""
 
 "ocp-4.2":
   admin_user:       "cloud-admin"
@@ -143,17 +151,5 @@
   version:          "4.2"
   http_proxy:       ""
   https_proxy:      ""
-
-"ocp-4.1":
-  admin_user:       "cloud-admin"
-  basedomain:       "--required--"
-  clustername:      "--required--"
-  cluster_fqdn:     "--required--"
-  creds_dir:        "--required--"
-  wildcard:         "apps"
-  wildcard_fqdn:    "--required--"
-  user:             "cloud-user"
-  version:          "4.1"
-  http_proxy:       ""
-  https_proxy:      ""
+  no_proxy:         ""
 
