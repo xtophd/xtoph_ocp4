@@ -13,88 +13,107 @@
 
 
 - include_tasks: "config-bastion-ocp-testlock.yml"
-  tags: always
 
 - include_tasks: "config-bastion-basics.yml"
-  tags: basics
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "basics"
 
 - include_tasks: "config-bastion-firewalld.yml"
-  when: xtoph_ocp4.bastion.firewalld|default(true) == true
-  tags: firewall
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "firewall"
+    - xtoph_ocp4.bastion.firewalld == true
 
 - include_tasks: "config-bastion-cockpit.yml"
-  when: xtoph_ocp4.bastion.cockpit|default(false) == true
-  tags: cockpit
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "cokcpit"
+    - xtoph_ocp4.bastion.cockpit == true
 
 - include_tasks: "config-bastion-workshop-materials.yml"
-  when: xtoph_ocp4.bastion.materials|default(true) == true
-  tags: workshop
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "workshop"
+    - xtoph_ocp4.bastion.materials == true
 
 - include_tasks: "config-bastion-workshop-user.yml"
-  when: xtoph_ocp4.bastion.workshop_user == true
-  tags: user
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "user"
+    - xtoph_ocp4.bastion.workshop_user == true
 
 - include_tasks: "config-bastion-desktop-gui.yml"
-  when: xtoph_ocp4.bastion.desktop_gui == true
-  tags: gui
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "gui"
+    - xtoph_ocp4.bastion.desktop_gui == true
 
 - include_tasks: "config-bastion-desktop-chrome.yml"
-  when: xtoph_ocp4.bastion.desktop_chrome == true
-  tags: chrome
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "chrome"
+    - xtoph_ocp4.bastion.desktop_chrome == true
 
 - include_tasks: "config-bastion-desktop-vnc.yml"
-  when: xtoph_ocp4.bastion.desktop_vnc == true
-  tags: vnc
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "vnc"
+    - xtoph_ocp4.bastion.desktop_vnc == true
 
 - include_tasks: "config-bastion-dns.yml"
-  when: xtoph_ocp4.bastion.dns == true
-  tags: dns
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "dns"
+    - xtoph_ocp4.bastion.dns == true
 
 - include_tasks: "config-bastion-matchbox.yml"
-  when: xtoph_ocp4.bastion.matchbox == true
-  tags: matchbox
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "matchbox"
+    - xtoph_ocp4.bastion.matchbox == true
 
 - include_tasks: "config-bastion-pxe.yml"
-  when: xtoph_ocp4.bastion.dhcp_pxe == true
-  tags: pxe
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "pxe"
+    - xtoph_ocp4.bastion.dhcp_pxe == true
 
 - include_tasks: "config-bastion-iso.yml"
-  when: xtoph_ocp4.bastion.iso == true
-  tags: iso
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "iso"
+    - xtoph_ocp4.bastion.iso == true
 
 - include_tasks: "config-bastion-dhcp.yml"
-  when: xtoph_ocp4.bastion.dhcp == true
-  tags: dhcp
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "dhcp"
+    - xtoph_ocp4.bastion.dhcp == true
 
 - include_tasks: "config-bastion-haproxy.yml"
-  when: xtoph_ocp4.bastion.haproxy == true
-  tags: haproxy 
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "haproxy"
+    - xtoph_ocp4.bastion.haproxy == true
 
 - include_tasks: "config-bastion-nfs.yml"
-  when: xtoph_ocp4.bastion.nfs == true
-  tags: nfs
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "nfs"
+    - xtoph_ocp4.bastion.nfs == true
 
 - include_tasks: "config-bastion-httpd.yml"
-  when: xtoph_ocp4.bastion.httpd == true
-  tags: httpd
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "httpd"
+    - xtoph_ocp4.bastion.httpd == true
 
 - include_tasks: "config-bastion-ntp.yml"
-  when: xtoph_ocp4.bastion.ntp == true
-  tags: ntp
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "ntp"
+    - xtoph_ocp4.bastion.ntp == true
 
 - include_tasks: "config-bastion-tests.yml"
-  tags: test
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "tests"
 
 - include_tasks: "config-bastion-openshift.yml"
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "test"
   tags: ocp
 
 - include_tasks: "config-bastion-ocp-lock.yml"
-  tags: lock
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "lock"
 
 - include_tasks: "config-bastion-ocp-unlock.yml"
-  tags:
-    - never
-    - unlock
+  when: 
+    - xtoph_ocp4_subaction == "unlock"
 
 
 
