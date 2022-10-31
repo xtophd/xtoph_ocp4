@@ -31,7 +31,7 @@
 - include_tasks: "config-bastion-workshop-materials.yml"
   when: 
     - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "workshop"
-    - xtoph_ocp4.bastion.materials == true
+    - xtoph_ocp4.bastion.workshop_materials == true
 
 - include_tasks: "config-bastion-workshop-user.yml"
   when: 
@@ -104,8 +104,7 @@
 
 - include_tasks: "config-bastion-openshift.yml"
   when: 
-    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "test"
-  tags: ocp
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "ocp"
 
 - include_tasks: "config-bastion-ocp-lock.yml"
   when: 
@@ -113,7 +112,7 @@
 
 - include_tasks: "config-bastion-ocp-unlock.yml"
   when: 
-    - xtoph_ocp4_subaction == "unlock"
+    -  xtoph_ocp4_subaction is defined and xtoph_ocp4_subaction == "unlock"
 
 
 

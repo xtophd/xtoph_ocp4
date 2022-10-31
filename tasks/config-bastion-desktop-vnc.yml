@@ -8,7 +8,7 @@
 
 - name: "xtoph_ocp4 : config-bastion-vnc : loading credentials"
   include_vars:
-    file: "../config/credentials.yml"
+    file: "./config/credentials.yml"
   when: workshopuser_username is undefined
 
 
