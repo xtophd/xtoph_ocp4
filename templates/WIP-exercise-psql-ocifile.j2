@@ -1,0 +1,17 @@
+##
+##  THIS IS A WORK IN PROGRESS (WIP)
+##
+
+FROM ubi8/ubi
+
+RUN yum install -y yum-utils
+
+RUN yum-config-manager --add-repo http://192.168.100.33:8008/repos/rhel-8.4/AppStream
+
+RUN yum module install -y postgresql:12/client
+
+RUN yum clean all
+
+CMD ["-D", "FOREGROUND"]
+#ENTRYPOINT ["/usr/sbin/httpd"]
+

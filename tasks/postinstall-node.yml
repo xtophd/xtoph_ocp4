@@ -6,6 +6,12 @@
   block:
 
       - debug:
+          msg: 
+            - "DEBUG: ***"
+            - "DEBUG: *** IF PERFORMING MANUAL DEPLOYMENT, TIME TO DEPLOY: {{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+            - "DEBUG: ***"
+
+      - debug:
           msg: "DEBUG: about to test ssh port on {{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}" 
         when: xtoph_ocp4._debug == true
 

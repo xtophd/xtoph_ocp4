@@ -1,0 +1,80 @@
+static_network_config:
+ - dns-resolver:
+     config:
+       server:
+       - 192.168.1.70
+   interfaces:
+   - name: eno1
+     mac-address: 3c:ec:ef:43:4d:6c
+     ipv4:
+       address:
+       - ip: 192.168.3.32
+         prefix-length: 24
+       dhcp: false
+       enabled: true
+     ipv6:
+       enabled: false
+     state: up
+     type: ethernet
+   - name: eno2
+     mac-address: 3c:ec:ef:43:4d:6d
+     ipv4:
+       enabled: false
+     ipv6:
+       enabled: false
+     state: down
+     type: ethernet
+   - name: eno3
+     mac-address: 3c:ec:ef:43:4d:6e
+     ipv4:
+       enabled: false
+     ipv6:
+       enabled: false
+     state: down
+     type: ethernet
+   - name: eno4
+     mac-address: 3c:ec:ef:43:4d:6f
+     ipv4:
+       enabled: false
+     ipv6:
+       enabled: false
+     state: down
+     type: ethernet
+   - name: eno5
+     mac-address: 3c:ec:ef:43:45:90
+     ipv4:
+       enabled: false
+     ipv6:
+       enabled: false
+     state: down
+     type: ethernet
+   - name: eno6
+     mac-address: 3c:ec:ef:43:45:91
+     ipv4:
+       enabled: false
+     ipv6:
+       enabled: false
+     state: down
+     type: ethernet
+   - name: eno7
+     mac-address: 3c:ec:ef:43:45:92
+     ipv4:
+       enabled: false
+     ipv6:
+       enabled: false
+     state: down
+     type: ethernet
+   - name: eno8
+     mac-address: 3c:ec:ef:43:45:93
+     ipv4:
+       enabled: false
+     ipv6:
+       enabled: false
+     state: down
+     type: ethernet
+   routes:
+     config:
+     - destination: 0.0.0.0/0
+       next-hop-address: 192.168.3.1
+       next-hop-interface: eno1
+       table-id: 254

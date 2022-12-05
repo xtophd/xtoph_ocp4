@@ -3,6 +3,7 @@
   host_name:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}"
   host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}.{{ workshop_vars.clustername }}.{{ workshop_vars.network_basedomain }}"
 
+  assisted_installer: "{{ workshop_vars.bastion.assisted_installer | default(False)  }}"
   chrome:             "{{ workshop_vars.bastion.chrome             | default(False)  }}"
   cockpit:            "{{ workshop_vars.bastion.cockpit            | default(True)   }}"
   cockpit_port:       "{{ workshop_vars.bastion.cockpit_port       | default('')     }}"
@@ -23,6 +24,7 @@
   nfs:                "{{ workshop_vars.bastion.nfs                | default(True)   }}"
   nfs_export:         "{{ workshop_extras.nfs_export               | default('/home/nfs-{{ workshop_vars.clustername }}') }}"
   ntp:                "{{ workshop_vars.bastion.ntp                | default(True)   }}"
+  openshift:          "{{ workshop_vars.bastion.openshift          | default(True)   }}"
   squid:              "{{ workshop_vars.bastion.squid              | default(False)  }}"
   squid_http_url:     "{{ workshop_vars.bastion.squid_http_url     | default('')     }}"
   squid_https_url:    "{{ workshop_vars.bastion.squid_https_url    | default('')     }}"
@@ -36,6 +38,7 @@
   host_name:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}"
   host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}.-- required --"
 
+  assisted_installer: False
   chrome:             False
   cockpit:            True
   cockpit_port:       ""
@@ -53,6 +56,7 @@
   iso:                False
   matchbox:           True
   matchbox_port:      "8008"
+  openshift:          True
   nfs:                True
   nfs_export:         ""
   ntp:                True

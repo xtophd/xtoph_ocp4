@@ -1,0 +1,35 @@
+#!/bin/bash
+
+##
+## Include the lib-exercise functions
+##
+
+. $(dirname "$0")/lib-exercise.sh
+
+
+
+export KUBECONFIG={{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeconfig
+
+exercise_cmd  "Check status of MCO managed nodes" \
+              "oc get machineconfigpool"
+
+exercise_cmd  "Applying chrony (ntp) machine config for masters" \
+              "oc apply -f /usr/local/etc/workshop-chrony-machineconfig-masters.yaml"
+
+exercise_cmd  "Applying chrony (ntp) machine config for workers" \
+              "oc apply -f /usr/local/etc/workshop-chrony-machineconfig-workers.yaml"
+
+exercise_cmd  "Check status of machine-config-operator (mco) managed nodes" \
+              "oc get machineconfigpool"
+
+exercise_cmd  "Check status of nodes in a machine config pool (mcp)" \
+              "oc describe mcp worker"
+
+exercise_cmd  "List the current machine-config objects" \
+              "oc get machineconfigs"
+
+exercise_msg  "In order to delete these machine configs:" \
+              "oc delete -f /usr/local/etc/workshop-chrony-machineconfig-masters.yaml" \
+              "oc delete -f /usr/local/etc/workshop-chrony-machineconfig-workers.yaml"
+
+

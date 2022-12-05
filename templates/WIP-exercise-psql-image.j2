@@ -1,0 +1,64 @@
+#!/bin/bash
+
+##
+##  THIS IS A WORK IN PROGRESS (WIP)
+##
+
+export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+
+function run_cmd() {
+
+  msg=$1
+  cmd=$2
+
+  echo ""
+  echo "## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - "
+  echo "## Message: $msg"
+  echo "## Command: $cmd"
+  echo ""
+
+  eval $cmd
+
+  rc=$?
+
+  if [[ $rc != 0 ]] ; then
+      exit "FATAL: previous command returned non-zero ($rc)"
+      exit $rc
+  fi
+
+  echo ""
+}
+
+
+
+##
+##
+##
+
+
+run_cmd "Install podman and buildah packages" \
+        "yum install -y podman buildah'"
+
+run_cmd "Create the custom container image" \
+        "podman build -t psql_client --file /usr/local/src/psql_client.OCIFile'"
+
+run_cmd "Create a new project" \
+        "oc new-project hello-database --description='Hello Database using Postgress 12' --display-name='Hello Database'"
+
+#run_cmd "Deploy application image" \
+#        "oc new-app registry.redhat.io/rhel8/postgresql-12 --name=hello-database"
+#
+#run_cmd "Wait for rollout" \
+#        "oc rollout status deployment/hello-database"
+#
+#run_cmd "Expose a route..." \
+#        "oc expose service hello-world --hostname=hello-world.apps.{{ workshop_extras.network_fqdn }}"
+
+
+echo ""
+echo "## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - "
+echo "## You can validate the results by running..."
+echo "##"
+echo "##    curl -k http://hello-world.apps.{{ workshop_extras.network_fqdn }}"
+echo "##"
+

@@ -1,10 +1,176 @@
 
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  throttle: 1
+  block:
+
+      #
+      #    Load the ocm offline tokens into vars
+      #
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) load ocm offline token"
+        shell: cat {{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt
+        register: ocm_token
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for nodes"
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
+                list hosts | grep {{ inventory_hostname_short }} | tr '[+\-\|]'  '[  ,]' | sed -e 's| *, *|,|g' -e 's|^,||g' -e 's|,$||g' | cut -d , -f 5
+        register: aicli_status
+        until: aicli_status.stdout == "known" 
+        delay: 5
+        retries: 600
+       
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) set node roles"
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
+                update host {{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }} -P role=worker
+        when: inventory_hostname in xtoph_ocp4._cluster_workers
+       
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) set node roles"
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
+                update host {{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }} -P role=master
+        when: inventory_hostname_short in xtoph_ocp4._cluster_masters
+       
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster ready"
+        run_once: true
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
+                info cluster {{ xtoph_ocp4.ocp.clustername }} | grep '^status:' | sed -e 's|^status: ||g'
+        register: aicli_status
+        until: aicli_status.stdout == "ready"
+        delay: 5
+        retries: 600
+       
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) start cluster build"
+        run_once: true
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
+                start cluster {{ xtoph_ocp4.ocp.clustername }}
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster install preparations to complete"
+        run_once: true
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }} -o json \
+                info cluster {{ xtoph_ocp4.ocp.clustername }} | jq '.progress.preparing_for_installation_stage_percentage'
+        register: aicli_status
+        until: aicli_status.stdout == "100"
+        delay: 5
+        retries: 600
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster installation to complete"
+        run_once: true
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }} -o json \
+                info cluster {{ xtoph_ocp4.ocp.clustername }} | jq '.progress.installing_stage_percentage'
+        register: aicli_status
+        until: aicli_status.stdout == "100"
+        delay: 5
+        retries: 600
+
+
+
+      #
+      #    Cleanup ssh keys again since AI goes through 
+      #    a reboot which changes host keys post the 
+      #    initial discovery image
+      #    
+      #
+      #    NOTE:  the technique of adding '| true' just ensures
+      #           that regardless of what ssh-keygen finds, the
+      #           result is 'true'.  This should remove the red
+      #           errors we ignore from the output
+      #
+    
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) cleanup ssh keys in knownhosts"
+        vars:
+          - p_item:      "{{ inventory_hostname }}"
+          - p_name:      "{{ inventory_hostname_short }}"
+          - p_addr:      "{{ h_pubIP }}"
+          - p_fqdn:      "{{ p_name }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+          - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
+        shell:
+          cmd: |
+            ssh-keygen -R "{{ p_item }}" | true
+            ssh-keygen -R "{{ p_name }}" | true
+            ssh-keygen -R "{{ p_fqdn }}" | true
+            ssh-keygen -R "{{ p_addr }}" | true
+        ignore_errors: yes
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) add new ssh keys for node"
+        vars:
+          - p_item:      "{{ inventory_hostname }}"
+          - p_name:      "{{ inventory_hostname_short }}"
+          - p_addr:      "{{ h_pubIP }}"
+          - p_fqdn:      "{{ p_name }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+          - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
+        shell:
+          cmd: |
+            ssh-keyscan "{{ p_name }}" >> /root/.ssh/known_hosts
+            ssh-keyscan "{{ p_fqdn }}" >> /root/.ssh/known_hosts
+        ignore_errors: yes
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) fetch kubeconfig"
+        run_once: true
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
+                download kubeconfig {{ xtoph_ocp4.ocp.clustername }} --path {{ xtoph_ocp4.ocp.creds_dir }}/auth
+        delay: 5
+        retries: 600
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) rename kubeconfig"
+        run_once: true
+        shell:
+          cmd: |
+            mv -f {{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeconfig.{{ xtoph_ocp4.ocp.clustername }} \
+                  {{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeconfig
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) fetch kubeadmin password"
+        run_once: true
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
+                download kubeadmin-password {{ xtoph_ocp4.ocp.clustername }} --path {{ xtoph_ocp4.ocp.creds_dir }}/auth
+        delay: 5
+        retries: 600
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) rename kubeconfig"
+        run_once: true
+        shell:
+          cmd: |
+            mv -f {{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeadmin-password.{{ xtoph_ocp4.ocp.clustername }} \
+                  {{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeadmin-password
+
+      - name: "xtoph_ocp4 : preinstall-workers : wait for availability of api"
+        run_once: true
+        wait_for:
+          host: "{{ xtoph_ocp4.ocp.vip_api }}"
+          connect_timeout: 5
+          delay: 3
+          port: 6443
+          sleep: 5
+          state: started
+          timeout: 1800
+
+  when:
+    - xtoph_ocp4.bastion.assisted_installer is defined and
+      xtoph_ocp4.bastion.assisted_installer == true
+
 
 
 - delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
   throttle: 1
   block:
-
 
       ##
       ##    For every node in cluster: 
@@ -13,8 +179,6 @@
       ##       approve pending CSR's
       ##       sleep
       ##
-
-
 
       - name: "xtoph_ocp4 : postinstall-cluster : watch until all nodes 'Ready', approve CSRs as needed"
         shell:
@@ -126,3 +290,7 @@
 
   vars:
     - oc_cmd: "/usr/local/bin/oc"
+
+
+
+

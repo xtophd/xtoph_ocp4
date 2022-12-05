@@ -1,0 +1,129 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+      - name: "xtoph_ocp4 : config-bastion-openshift : download ocp software [SRC: {{ xtoph_ocp4.ocp_assets.url }}]"
+        environment:
+          http_proxy:  "{{ xtoph_ocp4.ocp.http_proxy| default('') }}"
+          https_proxy: "{{ xtoph_ocp4.ocp.https_proxy| default('') }}"
+        get_url:
+          url: "{{ xtoph_ocp4.ocp_assets.url }}/{{ item }}"
+          dest: "/usr/local/src/{{ item }}"
+          mode: "0644"
+        with_items:
+          - "{{ xtoph_ocp4.ocp_assets.install_tar }}"
+        register: openshift_download
+        until: openshift_download is not failed
+        retries: 5
+      
+      - name: "xtoph_ocp4 : config-bastion-openshift : unpack ocp software"
+        shell:
+          cmd: |
+            cd /usr/local/bin
+            tar zxvf /usr/local/src/{{ item }}
+        with_items:
+          - "{{ xtoph_ocp4.ocp_assets.install_tar }}"
+      
+      - name: "xtoph_ocp4 : config-bastion-openshift : additional package installation"
+        yum: name=bash-completion state=installed
+
+      - name: "xtoph_ocp4 : config-bastion-openshift : configure openshift bash completion"
+        shell:
+          cmd: |
+            /usr/local/bin/openshift-install completion bash >> /etc/bash_completion.d/openshift-install_completion
+
+
+
+      - block:
+
+            - name: "xtoph_ocp4 : config-bastion-openshift : Clean-up matchbox ignition directory"
+              shell:
+                cmd: |
+                  if [[ -d "/var/lib/matchbox/ignition/" ]] ; then rm -f /var/lib/matchbox/ignition/* ; fi
+  
+            - name: "xtoph_ocp4 : config-bastion-openshift : load pull secret"
+              shell: cat {{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt
+              register: pull_secret
+          
+            - name: "xtoph_ocp4 : config-bastion-openshift : load ssh key"
+              shell: cat /root/.ssh/id_rsa.pub
+              register: ssh_key
+        
+            - name: "xtoph_ocp4 : config-bastion-openshift : deploy install-config.yml using SDN"
+              vars:
+                - p_pullSecret:   "{{ pull_secret.stdout |quote }}"
+                - p_sshKey:       "{{ ssh_key.stdout |quote }}"
+                - p_clusterName:  "{{ xtoph_ocp4.ocp.clustername }}"
+                - p_domain:       "{{ xtoph_ocp4.ocp.basedomain }}"
+                - p_http_proxy:   "{{ xtoph_ocp4.bastion.squid_http_url if xtoph_ocp4.bastion.squid else xtoph_ocp4.ocp.http_proxy|default('') }}"
+                - p_https_proxy:  "{{ xtoph_ocp4.bastion.squid_https_url if xtoph_ocp4.bastion.squid else xtoph_ocp4.ocp.https_proxy|default('') }}"
+                - p_no_proxy:     "{{ g_no_proxy | default ('') }}"
+              template:
+                src: "ocp-install-config-sdn.j2"
+                dest: "{{ xtoph_ocp4.ocp.creds_dir }}/install-config.yaml"
+                owner: root
+                group: root
+                mode: 644
+            when: xtoph_ocp4.ocp.version is version('4.9',operator='<')
+    
+            - name: "xtoph_ocp4 : config-bastion-openshift : deploy install-config.yml using OVN"
+              vars:
+                - p_pullSecret:   "{{ pull_secret.stdout |quote }}"
+                - p_sshKey:       "{{ ssh_key.stdout |quote }}"
+                - p_clusterName:  "{{ xtoph_ocp4.ocp.clustername }}"
+                - p_domain:       "{{ xtoph_ocp4.ocp.basedomain }}"
+                - p_http_proxy:   "{{ xtoph_ocp4.bastion.squid_http_url if xtoph_ocp4.bastion.squid else xtoph_ocp4.ocp.http_proxy|default('') }}"
+                - p_https_proxy:  "{{ xtoph_ocp4.bastion.squid_https_url if xtoph_ocp4.bastion.squid else xtoph_ocp4.ocp.https_proxy|default('') }}"
+                - p_no_proxy:     "{{ g_no_proxy | default ('') }}"
+              template:
+                src: "ocp-install-config-ovn.j2"
+                dest: "{{ xtoph_ocp4.ocp.creds_dir }}/install-config.yaml"
+                owner: root
+                group: root
+                mode: 644
+              when: xtoph_ocp4.ocp.version is version('4.9',operator='>=')
+          
+            - name: "xtoph_ocp4 : config-bastion-openshift : Create a backup of the install-config.yaml"
+              shell:
+                cmd: |
+                  cp "{{ xtoph_ocp4.ocp.creds_dir }}/install-config.yaml" "{{ xtoph_ocp4.ocp.creds_dir }}/install-config.bak"
+        
+            - name: "xtoph_ocp4 : config-bastion-openshift : create ignition files"
+              shell:
+                cmd: |
+                  cd {{ xtoph_ocp4.ocp.creds_dir }}
+                  /usr/local/bin/openshift-install --dir={{ xtoph_ocp4.ocp.creds_dir }} create ignition-configs
+          
+            - name: "xtoph_ocp4 : config-bastion-openshift : copy ignition files"
+              shell:
+                cmd: |
+                  cp {{ xtoph_ocp4.ocp.creds_dir }}/*.ign /var/lib/matchbox/ignition/
+          
+            - name: "xtoph_ocp4 : config-bastion-openshift : fix ignition file permissions"
+              shell:
+                cmd: |
+                  chown matchbox.matchbox /var/lib/matchbox/ignition/*
+      
+        #
+        #    Only execute tasks if workshop_lock == false
+        #
+
+        when:
+          - workshop_lock == false
+
+
+      
+      ## Maybe matchbox needs a refresh of content updates, so just to be safe... restart
+      
+      - name: "xtoph_ocp4 : config-bastion-openshift : restart matchbox services"
+        service: name="{{ item }}" state=restarted enabled=yes daemon_reload=yes
+        with_items:
+          - "matchbox"
+        when: xtoph_ocp4.bastion.matchbox == true
+      
+      - name: "xtoph_ocp4 : config-bastion-openshift : DEBUG"
+        debug: msg="YOU CAN NOW DEPLOY THE BOOTSTRAP"
+

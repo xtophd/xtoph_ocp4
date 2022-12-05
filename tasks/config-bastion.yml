@@ -72,6 +72,7 @@
   when: 
     - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "iso"
     - xtoph_ocp4.bastion.iso == true
+    - xtoph_ocp4.ocp.provisioner == "upi"
 
 - include_tasks: "config-bastion-dhcp.yml"
   when: 
@@ -102,9 +103,21 @@
   when: 
     - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "tests"
 
-- include_tasks: "config-bastion-openshift.yml"
+- include_tasks: "config-bastion-ocp-prep.yml"
   when: 
-    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "ocp"
+    - xtoph_ocp4_subaction is undefined or 
+      xtoph_ocp4_subaction == "ocp" or
+      xtoph_ocp4_subaction == "ai"
+
+- include_tasks: "config-bastion-ocp-upi.yml"
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "upi"
+    - xtoph_ocp4.ocp.provisioner == "upi"
+
+- include_tasks: "config-bastion-ocp-ai.yml"
+  when: 
+    - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "ai"
+    - xtoph_ocp4.ocp.provisioner == "ai"
 
 - include_tasks: "config-bastion-ocp-lock.yml"
   when: 

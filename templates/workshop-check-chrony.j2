@@ -1,0 +1,41 @@
+#!/bin/bash
+
+##
+## Include the lib-exercise functions
+##
+
+. $(dirname "$0")/lib-exercise.sh
+
+
+
+export KUBECONFIG={{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeconfig
+
+exercise_cmd  "Check status of MCO managed nodes" \
+              "oc get machineconfigpool"
+
+exercise_cmd  "Check status of nodes in a machine config pool (mcp)" \
+              "oc describe mcp worker"
+
+exercise_cmd  "List the current machine-config objects" \
+              "oc get mc"
+
+
+exercise_msg  "Check if workshop chrony mco has been applied"
+if $( oc get mc | grep -q 99-master-chrony-configuration ); then
+  echo "Workshop chrony mco: APPLIED"
+
+  exercise_msg "Describe the workshop chrony mco" \
+               "oc describe mco 99-master-chrony-configuration"
+else
+  echo "Workshop chrony mco: NOT PRESENT"
+fi
+
+
+
+exercise_msg  "Check nodes: /etc/resolv.conf"
+
+for i in `oc get nodes -o custom-columns="Node Name:.metadata.name" --no-headers` ; do
+    echo "$i: "
+    ssh core@$i "grep -v -E '^#|^$' /etc/chrony.conf | awk '{ print \"  \" , \$0 }' "
+done
+

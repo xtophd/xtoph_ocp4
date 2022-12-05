@@ -1,0 +1,127 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+      #
+      #    Run this block only if install method 
+      #    is UPI (not assisted_installer AI)
+      #
+
+
+
+      - block:
+
+            #
+            #    generic set of tests to verify bastion 
+            #    services are up prior to starting
+            #    bootstrap deployment
+            #
+
+            - name: "xtoph_ocp4 : preinstall-node : (bootstrap) test DNS port on bastion"
+              when: xtoph_ocp4.bastion.dns == true
+              wait_for:
+                host: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+                connect_timeout: 5
+                delay: 3
+                port: 53 
+                sleep: 1
+                state: started
+                timeout: 30
+          
+            - name: "xtoph_ocp4 : preinstall-node : (bootstrap) test MATCHBOX port on bastion"
+              when: xtoph_ocp4.bastion.matchbox == true
+              wait_for:
+                host: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+                connect_timeout: 5
+                delay: 3
+                port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
+                sleep: 1
+                state: started
+                timeout: 30
+
+        when: inventory_hostname in xtoph_ocp4._cluster_bootstrap
+
+
+
+      - block:
+
+            #
+            #    Because the bootstrap disables itself once
+            #    masters are online, test if masters already 
+            #    provide config-service.  Otherwise, you
+            #    wind up waiting for the bootstrap which will
+            #    never come.
+            #
+      
+            - name: "xtoph_ocp4 : preinstall-node : (master) verify CONFIG SERVER port on masters is NOT active"
+              ignore_errors: true
+              wait_for:
+                host: "{{ item }}"
+                connect_timeout: 5 
+                delay: 3
+                port: "22623"
+                sleep: 1
+                state: started
+                timeout: 15
+              register: config_service_master
+              loop: "{{ xtoph_ocp4._cluster_masters }}"
+      
+            - debug: var=config_service_master
+              when: xtoph_ocp4._debug == true
+      
+            #
+            #    wait here until BOOTSTRAP provides config-service, 
+            #    unless masters are already online providing config-service
+            #
+      
+            - name: "xtoph_ocp4 : preinstall-node : (master) wait for  CONFIG SERVER port on bootstrap"
+              run_once: true
+              wait_for:
+                host: "{{ item }}"
+                connect_timeout: 5
+                delay: 3
+                port: "22623"
+                sleep: 1
+                state: started
+                timeout: 1800 
+              register: config_service_bootstrap
+              loop: "{{ xtoph_ocp4._cluster_bootstrap }}"
+              when: config_service_master.failed is defined
+      
+            - debug: var=config_service_bootstrap
+              when: xtoph_ocp4._debug == true
+
+        when: inventory_hostname in xtoph_ocp4._cluster_masters
+
+
+
+      - block:
+
+            #
+            #    wait here until MASTERS provide config-service 
+            #
+      
+
+            - name: "xtoph_ocp4 : preinstall-node : (worker) wait for availability of config-server on masters"
+              wait_for:
+                host: "{{ hostvars[item]['h_pubIP'] }}"
+                connect_timeout: 5
+                delay: 3
+                port: 22623
+                sleep: 5
+                state: started
+                timeout: 1800
+              loop: "{{ xtoph_ocp4._cluster_masters | difference(xtoph_ocp4._cluster_bootstrap) }}"
+
+        when: inventory_hostname in xtoph_ocp4._cluster_workers
+
+
+
+  when: xtoph_ocp4.bastion.assisted_installer is undefined or
+        xtoph_ocp4.bastion.assisted_installer == false
+
+
+

@@ -21,7 +21,7 @@
 
 
 
-      - name: "xtoph_ocp4 : config-bastion-workshop-materials: install workshop-(scripts) in /usr/local/bin"
+      - name: "xtoph_ocp4 : config-bastion-workshop-materials : install workshop-(scripts) in /usr/local/bin"
         vars:
           - t_bastion_host_ip:    "{{ xtoph_ocp4.bastion.host_ip }}"
           - t_bastion_dns:        "{{ xtoph_ocp4.bastion.dns }}"
@@ -36,10 +36,12 @@
           - {mode: '0744', src: 'workshop-approve-csr.j2',         dest: '/usr/local/bin/workshop-approve-csr.sh'}
           - {mode: '0744', src: 'workshop-check-health.j2',        dest: '/usr/local/bin/workshop-check-health.sh'}
           - {mode: '0744', src: 'workshop-check-dns.j2',           dest: '/usr/local/bin/workshop-check-dns.sh'}
+          - {mode: '0744', src: 'workshop-check-chrony.j2',        dest: '/usr/local/bin/workshop-check-chrony.sh'}
           - {mode: '0744', src: 'workshop-check-operators.j2',     dest: '/usr/local/bin/workshop-check-operators.sh'}
           - {mode: '0744', src: 'workshop-check-version.j2',       dest: '/usr/local/bin/workshop-check-version.sh'}
           - {mode: '0744', src: 'workshop-config-registry.j2',     dest: '/usr/local/bin/workshop-config-registry.sh'}
           - {mode: '0744', src: 'workshop-config-scheduler.j2',    dest: '/usr/local/bin/workshop-config-scheduler.sh'}
+          - {mode: '0744', src: 'workshop-config-chrony.j2',       dest: '/usr/local/bin/workshop-config-chrony.sh'}
           - {mode: '0744', src: 'workshop-rsh.j2',                 dest: '/usr/local/bin/workshop-rsh.sh'}
           - {mode: '0744', src: 'workshop-validate-service.j2',    dest: '/usr/local/bin/workshop-validate-service.sh'}
           - {mode: '0744', src: 'workshop-validate-app.j2',        dest: '/usr/local/bin/workshop-validate-app.sh'}
@@ -62,14 +64,14 @@
           - {mode: '0744', src: 'exercise10-install-aap.j2',       dest: '/usr/local/bin/exercise10-install-aap.sh'}
           - {mode: '0744', src: 'exercise10-uninstall-aap.j2',     dest: '/usr/local/bin/exercise10-uninstall-aap.sh'}
           - {mode: '0744', src: 'exercise10-restart-aap.j2',       dest: '/usr/local/bin/exercise10-restart-aap.sh'}
-          - {mode: '0744', src: 'exercise10-get-info.j2',             dest: '/usr/local/bin/exercise10-get-info.sh'}
+          - {mode: '0744', src: 'exercise10-get-info.j2',          dest: '/usr/local/bin/exercise10-get-info.sh'}
       
           - {mode: '0744', src: 'exercise-db-server.j2',           dest: '/usr/local/bin/exercise-db-server.sh'}
       
       
       
       
-      - name: "xtoph_ocp4 : config-bastion-workshop-materials: install conditional workshop-(scripts) in /usr/local/bin"
+      - name: "xtoph_ocp4 : config-bastion-workshop-materials : install conditional workshop-(scripts) in /usr/local/bin"
         template:
           src: "{{ item.src }}"
           dest: "{{ item.dest }}"
@@ -82,16 +84,18 @@
       
       
       
-      - name: "xtoph_ocp4 : config-bastion-workshop-materials: install workshop-(yaml's) in /usr/local/etc"
+      - name: "xtoph_ocp4 : config-bastion-workshop-materials : install workshop-(yaml's) in /usr/local/etc"
         vars:
-          - p_server: "{{ xtoph_ocp4.bastion.host_ip }}"
-          - p_path:   "{{ xtoph_ocp4.bastion.nfs_export }}"
+          - p_server:      "{{ xtoph_ocp4.bastion.host_ip }}"
+          - p_path:        "{{ xtoph_ocp4.bastion.nfs_export }}"
+          - p_timeserver:  "{{ xtoph_ocp4.network.timeserver }}"
+          - p_chrony_conf: "{{ lookup('template', 'workshop-config-chrony-conf.j2') | b64encode }}"
         template:
           src: "{{ item.src }}"
           dest: "{{ item.dest }}"
           owner: root
           group: root
-          mode: 0744
+          mode: 0644
         with_items:
           - {src: 'workshop-yaml-identity.j2',    dest: '/usr/local/etc/workshop-identity.yaml'}
           - {src: 'workshop-users-htpasswd.j2',   dest: '/usr/local/etc/workshop-users.htpasswd'}
@@ -102,4 +106,7 @@
           - {src: 'exercise10-aap-pv.j2',         dest: '/usr/local/etc/exercise10-aap-pv.yaml'}
           - {src: 'exercise10-aap-sub1.j2',       dest: '/usr/local/etc/exercise10-aap-sub1.yaml'}
           - {src: 'exercise10-aap-sub2.j2',       dest: '/usr/local/etc/exercise10-aap-sub2.yaml'}
+          - {src: 'workshop-config-chrony-machineconfig-masters.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-masters.yaml'}
+          - {src: 'workshop-config-chrony-machineconfig-workers.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-workers.yaml'}
+
 

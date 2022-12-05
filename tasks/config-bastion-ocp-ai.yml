@@ -1,0 +1,165 @@
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : clean-up ai work directory {{ t_tmpdir }}"
+        run_once: true
+        shell:
+          cmd: |
+            if [[ -d "{{ t_tmpdir }}" ]] ; then rm -rf {{ t_tmpdir }} ; fi
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create ai work directory {{ t_tmpdir }}"
+        file:
+          path="{{ t_tmpdir }}"
+          mode="0755"
+          state=directory
+
+
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : pip install aicli"
+        pip:
+          name: aicli
+          state: present
+ 
+
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : load ocm offline token"
+        shell: cat {{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt
+        register: ocm_token
+            
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : load ssh key"
+        shell: cat /root/.ssh/id_rsa.pub
+        register: ssh_key
+
+
+     
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : test for existing cluster configuration"
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
+                info cluster {{ xtoph_ocp4.ocp.clustername }} 
+        ignore_errors: true
+        register: aicli_status
+
+      
+      
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new cluster configuration"
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
+                  create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
+                  -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
+                  -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
+                  -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
+                  -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
+                  -P network_type="OVNKubernetes"                                 \
+                  -P vip_dhcp_allocation="false"                                  
+        when: aicli_status.rc == 1 
+    
+      
+      
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : update existing cluster configuration"
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
+                  update cluster {{ xtoph_ocp4.ocp.clustername }}                 \
+                  -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
+                  -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
+                  -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
+                  -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
+                  -P network_type="OVNKubernetes"                                 \
+                  -P vip_dhcp_allocation="false"                                  
+        when: aicli_status.rc != 0 
+   
+
+ 
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy nmstate base"
+        vars: 
+          - t_sshkey: "{{ ssh_key.stdout }}"
+        template:
+          src: "ocp-ai-nmstate.j2"
+          dest: "{{ t_tmpdir }}/nmstate-base.yml"
+          owner: root
+          group: root
+          mode: 644
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy nmstate static network configs"
+        run_once: false
+        vars:
+          - t_network_yaml: "{{ lookup('template', 'ocp-ai-nmstate-network-yaml.j2') | replace('\n','\\n') }}"
+        template:
+          src: "ocp-ai-nmstate-static-config.j2"
+          dest: "{{ t_tmpdir }}/nmstate-static-config-{{ inventory_hostname_short }}.yml"
+          owner: root
+          group: root
+          mode: 644
+        when: inventory_hostname_short in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
+
+      - name: "xtoph_ocp4 : config-bastion-ai : merge nmstate with host static_network_config(s)"
+        shell:
+          chdir: "{{ t_tmpdir }}"
+          cmd: |
+            jq '.static_network_config += [inputs]' nmstate-base.yml nmstate-static-config-*.yml > nmstate.yml
+               
+      - name: "xtoph_ocp4 : config-bastion-ai : aicli load nmstate config"
+        shell:
+          chdir: "{{ t_tmpdir }}"
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
+                  update cluster {{ xtoph_ocp4.ocp.clustername }}  \
+                  --paramfile nmstate.yml
+ 
+      - name: "xtoph_ocp4 : config-bastion-ai : cleanup any prior iso download"
+        file:
+          path: "/var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}.iso"
+          state: absent
+
+      - name: "xtoph_ocp4 : config-bastion-ai : aicli create iso"
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
+                  create iso {{ xtoph_ocp4.ocp.clustername }}           
+      
+      - name: "xtoph_ocp4 : config-bastion-ai : aicli download ISO"
+        shell:
+          chdir: "/var/lib/matchbox/assets/"
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
+                  download iso {{ xtoph_ocp4.ocp.clustername }}
+
+
+  vars:
+    - t_tmpdir:    "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/ai"
+    - t_name:      "{{ inventory_hostname_short }}"
+    - t_addr:      "{{ h_pubIP  }}"
+    - t_mac:       "{{ xtoph_ocp4.rhcos.nic_mac }}"
+    - t_netdev:    "{{ xtoph_ocp4.rhcos.new_nicdev }}"
+    - t_dns:       "{{ xtoph_ocp4.network.nameserver }}"
+    - t_prefix:    "{{ xtoph_ocp4.network.prefix }}"
+    - t_gateway:   "{{ xtoph_ocp4.network.gateway }}"
+
+
+
+#
+#    restart the matchbox service
+#
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+      - name: "xtoph_ocp4 : config-bastion-matchbox : enable and restart services"
+        run_once: true
+        service: name="{{ item }}" state=restarted enabled=yes masked=no daemon_reload=yes
+        with_items:
+          - "matchbox"
+
+      
+
