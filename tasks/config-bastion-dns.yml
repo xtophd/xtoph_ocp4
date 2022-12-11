@@ -88,12 +88,16 @@
 
       - name: "xtoph_ocp4 : config-bastion-dns : deploy STANDARD options, API and WILDCARD"
         vars:
-          - p_clustername: "{{ xtoph_ocp4.ocp.clustername }}"
-          - p_nameServer:  "{{ xtoph_ocp4.network.nameserver }}"
-          - p_addr:        "{{ xtoph_ocp4.bastion.host_ip }}"
-          - p_domain:      "{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
-          - p_wildcard:    "{{ xtoph_ocp4.ocp.wildcard }}.{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
-          - p_revAddr:     "{{ (p_addr.split('.'))[::-1]|join('.') }}"
+          - p_clustername:     "{{ xtoph_ocp4.ocp.clustername }}"
+          - p_nameServer:      "{{ xtoph_ocp4.network.nameserver }}"
+          - p_domain:          "{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_wildcard:        "{{ xtoph_ocp4.ocp.wildcard }}.{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_addr:            "{{ xtoph_ocp4.bastion.host_ip }}"
+          - p_revAddr:         "{{ (p_addr.split('.'))[::-1]|join('.') }}"
+          - p_cluster_addr:    "{{ xtoph_ocp4.ocp.vip_cluster }}"
+          - p_cluster_revAddr: "{{ (p_cluster_addr.split('.'))[::-1]|join('.') }}"
+          - p_api_addr:        "{{ xtoph_ocp4.ocp.vip_api }}"
+          - p_api_revAddr:     "{{ (p_api_addr.split('.'))[::-1]|join('.') }}"
         template:
           src: "dnsmasq-standard-opts.j2"
           dest: "/etc/dnsmasq.d/30-standard-opts.conf"
