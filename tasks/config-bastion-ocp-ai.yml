@@ -6,6 +6,8 @@
   block:
 
 
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : install additional packages"
+        yum: name=python3-pip state=installed
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : clean-up ai work directory {{ t_tmpdir }}"
         run_once: true
