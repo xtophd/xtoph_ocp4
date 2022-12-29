@@ -19,14 +19,10 @@
           mode="0755"
           state=directory
 
-
-
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : pip install aicli"
         pip:
           name: aicli
           state: present
- 
-
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : load ocm offline token"
         shell: cat {{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt
@@ -35,9 +31,7 @@
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : load ssh key"
         shell: cat /root/.ssh/id_rsa.pub
         register: ssh_key
-
-
-     
+ 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : test for existing cluster configuration"
         shell:
           cmd: |
@@ -100,6 +94,7 @@
           mode: 644
         when: inventory_hostname_short in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
 
+
       - name: "xtoph_ocp4 : config-bastion-ai : merge nmstate with host static_network_config(s)"
         shell:
           chdir: "{{ t_tmpdir }}"
@@ -113,7 +108,7 @@
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                   update cluster {{ xtoph_ocp4.ocp.clustername }}  \
                   --paramfile nmstate.yml
- 
+
       - name: "xtoph_ocp4 : config-bastion-ai : cleanup any prior iso download"
         file:
           path: "/var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}.iso"
