@@ -1,7 +1,7 @@
 "workshop-vars":
   host_ip:            "{{ hostvars[groups['myBastion'][0]].h_pubIP }}"
   host_name:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}"
-  host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}.{{ workshop_vars.clustername }}.{{ workshop_vars.network_basedomain }}"
+  host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}.{{ workshop_vars.ocp_clustername }}.{{ workshop_vars.network_basedomain }}"
 
   assisted_installer: "{{ workshop_vars.bastion.assisted_installer | default(False)  }}"
   chrome:             "{{ workshop_vars.bastion.chrome             | default(False)  }}"
@@ -22,7 +22,7 @@
   matchbox:           "{{ workshop_vars.bastion.matchbox           | default(True)   }}"
   matchbox_port:      "{{ workshop_vars.bastion.matchbox_port      | default('8008') }}"
   nfs:                "{{ workshop_vars.bastion.nfs                | default(True)   }}"
-  nfs_export:         "{{ workshop_extras.nfs_export               | default('/home/nfs-{{ workshop_vars.clustername }}') }}"
+  nfs_export:         "{{ workshop_extras.nfs_export               | default('/home/nfs-{{ workshop_vars.ocp_clustername }}') }}"
   ntp:                "{{ workshop_vars.bastion.ntp                | default(True)   }}"
   openshift:          "{{ workshop_vars.bastion.openshift          | default(True)   }}"
   squid:              "{{ workshop_vars.bastion.squid              | default(False)  }}"

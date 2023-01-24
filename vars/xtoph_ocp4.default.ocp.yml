@@ -2,7 +2,7 @@
 "workshop-vars":
   admin_user:       "{{ workshop_vars.ocp_admin_user      | default('cloud-admin')  }}"
   basedomain:       "{{ workshop_vars.network_basedomain  | default('--required--') }}"
-  clustername:      "{{ workshop_vars.clustername         | default('--required--') }}"
+  clustername:      "{{ workshop_vars.ocp_clustername     | default('--required--') }}"
   cluster_fqdn:     "{{ workshop_extras.network_fqdn      | default('--required--') }}"
 
   vip_cluster:      "{{ workshop_vars.ocp_vip_cluster     | default('') }}"
