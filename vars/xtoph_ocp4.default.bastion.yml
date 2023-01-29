@@ -1,7 +1,7 @@
 "workshop-vars":
   host_ip:            "{{ hostvars[groups['myBastion'][0]].h_pubIP }}"
   host_name:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}"
-  host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}.{{ workshop_vars.ocp_clustername }}.{{ workshop_vars.network_basedomain }}"
+  host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname }}"
 
   assisted_installer: "{{ workshop_vars.bastion.assisted_installer | default(False)  }}"
   chrome:             "{{ workshop_vars.bastion.chrome             | default(False)  }}"
@@ -34,9 +34,9 @@
 
 
 "default":
-  host_ip:            "{{ hostvars[groups['myBastion'][0]].h_pubIP }}"
-  host_name:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}"
-  host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}.-- required --"
+  host_ip:            "{{ hostvars[groups['myBastion'][0]].h_pubIP }} | default{'-- required --'}"
+  host_name:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }} | default{'-- required --'}"
+  host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname }} | default{'-- required --'}"
 
   assisted_installer: False
   chrome:             False

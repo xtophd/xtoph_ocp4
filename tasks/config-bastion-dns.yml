@@ -73,25 +73,30 @@
 
 
       #
-      #    Now deploy a /etc/resolv.conf that 
+      #    Ddeploy a /etc/resolv.conf that 
       #    points to our bastion dns server
       #
  
       - name: "xtoph_ocp4 : config-bastion-dns : deploy resolv.conf"
         vars: 
-          - p_search:     "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+          - p_search:     "{{ xtoph_ocp4.ocp.basedomain }} {{ xtoph_ocp4.ocp.cluster_fqdn }}"
           - p_nameserver: "127.0.0.1"
         template:
           src:   "dns-resolv-conf.j2"
           dest:  "/etc/resolv.conf"
           owner: root
 
+      #
+      #    Deploy a standard options, api and wildcard configs
+      #
+
       - name: "xtoph_ocp4 : config-bastion-dns : deploy STANDARD options, API and WILDCARD"
         vars:
           - p_clustername:     "{{ xtoph_ocp4.ocp.clustername }}"
           - p_nameServer:      "{{ xtoph_ocp4.network.nameserver }}"
-          - p_domain:          "{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
-          - p_wildcard:        "{{ xtoph_ocp4.ocp.wildcard }}.{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_domain:          "{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_cluster_fqdn:    "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+          - p_wildcard:        "{{ xtoph_ocp4.ocp.wildcard_fqdn }}"
           - p_addr:            "{{ xtoph_ocp4.bastion.host_ip }}"
           - p_revAddr:         "{{ (p_addr.split('.'))[::-1]|join('.') }}"
           - p_cluster_addr:    "{{ xtoph_ocp4.ocp.vip_cluster }}"
@@ -99,9 +104,6 @@
           - p_api_addr:        "{{ xtoph_ocp4.ocp.vip_api }}"
           - p_api_revAddr:     "{{ (p_api_addr.split('.'))[::-1]|join('.') }}"
         template:
-          src: "dnsmasq-standard-opts.j2"
-          dest: "/etc/dnsmasq.d/30-standard-opts.conf"
-          owner: root
           src:   "{{ item.src }}"
           dest:  "{{ item.dest }}"
           owner: root
@@ -109,25 +111,57 @@
           mode:  644
         with_items:
           - { src: "dnsmasq-standard-opts.j2",  dest: "/etc/dnsmasq.d/30-standard-opts.conf" }
-          - { src: "dnsmasq-api-entry.j2",      dest: "/etc/dnsmasq.d/55-api-{{ p_clustername }}.conf" }
-          - { src: "dnsmasq-wildcard-entry.j2", dest: "/etc/dnsmasq.d/45-wildcard-{{ p_clustername }}.conf" }
-
-    
+          - { src: "dnsmasq-api-entry.j2",      dest: "/etc/dnsmasq.d/55-{{ p_cluster_fqdn }}-api.conf" }
+          - { src: "dnsmasq-wildcard-entry.j2", dest: "/etc/dnsmasq.d/45-{{ p_cluster_fqdn }}-wildcard.conf" }
 
       #
       #    Nodes: deploy distinct configuration files for each OCP node
       #
 
-      - name: "xtoph_ocp4 : config-bastion-dns : deploy HOST entries"
+## Switched to using FQDN in ansible inventory
+#      - name: "xtoph_ocp4 : config-bastion-dns : deploy CLUSTER host entries"
+#        run_once: false
+#        vars:
+#          - p_name:        "{{ inventory_hostname_short }}"
+#          - p_domain:      "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+#          - p_addr:        "{{ h_pubIP }}"
+#          - p_revAddr:     "{{ (p_addr.split('.'))[::-1]|join('.') }}"
+#        template:
+#          src:   "dnsmasq-host-entry.j2"
+#          dest:  "/etc/dnsmasq.d/50-{{ p_domain }}-{{ p_name }}.conf"
+#          owner: root
+#          group: root
+#          mode:  644
+#        when:
+#          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_bootstrap
+#          
+#      - name: "xtoph_ocp4 : config-bastion-dns : deploy NON-CLUSTER host entries"
+#        run_once: false
+#        vars:
+#          - p_name:        "{{ inventory_hostname_short }}"
+#          - p_domain:      "{{ xtoph_ocp4.ocp.basedomain }}"
+#          - p_addr:        "{{ h_pubIP }}"
+#          - p_revAddr:     "{{ (p_addr.split('.'))[::-1]|join('.') }}"
+#        template:
+#          src:   "dnsmasq-host-entry.j2"
+#          dest:  "/etc/dnsmasq.d/50-{{ p_domain }}-{{ p_name }}.conf"
+#          owner: root
+#          group: root
+#          mode:  644
+#        when:
+#          - inventory_hostname not in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_bootstrap
+
+
+     
+      - name: "xtoph_ocp4 : config-bastion-dns : deploy host configs"
         run_once: false
         vars:
-          - p_name:        "{{ inventory_hostname_short }}"
-          - p_domain:      "{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_name:        "{{ inventory_hostname }}"
           - p_addr:        "{{ h_pubIP }}"
           - p_revAddr:     "{{ (p_addr.split('.'))[::-1]|join('.') }}"
         template:
           src:   "dnsmasq-host-entry.j2"
-          dest:  "/etc/dnsmasq.d/50-dns-{{ p_domain }}-{{ p_name }}.conf"
+          dest:  "/etc/dnsmasq.d/50-host-{{ p_name }}.conf"
           owner: root
           group: root
           mode:  644
@@ -143,14 +177,14 @@
       #          to generate the appropriate etcd-index
       #
     
-      - name: "xtoph_ocp4 : config-bastion-dns : deploy ETCD srv entries for OCP versions < 4.4"
+      - name: "xtoph_ocp4 : config-bastion-dns : deploy CLUSTER ETCD srv entries for OCP versions < 4.4"
         vars:
           - p_addr:        "{{ hostvars[item]['h_pubIP'] }}"
-          - p_domain:      "{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }}"
+          - p_domain:      "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
           - p_etcdName:    "etcd-{{ p_index }}"
         template:
           src: "dnsmasq-etcd-entry.j2"
-          dest: "/etc/dnsmasq.d/45-etcd-{{ p_etcdName }}.conf"
+          dest: "/etc/dnsmasq.d/45-{{p_domain}}-{{ p_etcdName }}.conf"
           owner: root
           group: root
           mode: 644
@@ -158,8 +192,6 @@
         loop: "{{ xtoph_ocp4._cluster_masters }}"
         loop_control: 
           index_var: p_index
-
-
 
       #
       #    Last couple of items:

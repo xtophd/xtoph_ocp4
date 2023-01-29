@@ -1,7 +1,7 @@
 
 subnet {{ p_network }} netmask {{ p_netmask }} {
 
-    option domain-name         "{{ p_cluster }}.{{ p_domain }}";
+    option domain-name         "{{ p_domain }}";
     option domain-name-servers {{ p_dns }};
     option routers             {{ p_gateway }};
     option broadcast-address   {{ p_broadcast }};
@@ -16,7 +16,7 @@ subnet {{ p_network }} netmask {{ p_netmask }} {
        log (info, concat ("dhcpd-debug: CLIENT MAC: ",      binary-to-ascii (16, 8, ":", substring (hardware, 1, 6))));
     }
 
-{% if workshop_vars.bastion.dhcp_pxe == true %}
+{% if xtoph_ocp4.bastion.dhcp_pxe == true %}
   class "pxeclients" {	
 
     match if substring (option vendor-class-identifier, 0, 9) = "PXEClient";
@@ -49,7 +49,7 @@ subnet {{ p_network }} netmask {{ p_netmask }} {
   }
 {% endif %}
 
-{% if workshop_vars.bastion.dhcp_uefi_http == true %}
+{% if xtoph_ocp4.bastion.dhcp_uefi_http == true %}
   class "httpclients" {	
 
     option vendor-class-identifier "HTTPClient";
@@ -58,11 +58,11 @@ subnet {{ p_network }} netmask {{ p_netmask }} {
     log (info, "dhcpd-debug: CLIENT IDENTIFIER: HTTPClient");
 
     log (info,concat("dhcpd-debug: CLIENT FILENAME: ",
-                     "http://{{ p_nextsvr }}:{{ p_http_port }}/assets/{{ workshop_vars.clustername }}-", 
+                     "http://{{ p_nextsvr }}:{{ p_http_port }}/assets/{{ xtoph_ocp4.ocp.clustername }}-", 
                      host-decl-name, 
                      ".iso"));
 
-    filename = concat("http://{{ p_nextsvr }}:{{ p_http_port }}/assets/{{ workshop_vars.clustername }}-", host-decl-name, ".iso");
+    filename = concat("http://{{ p_nextsvr }}:{{ p_http_port }}/assets/{{ xtoph_ocp4.ocp.clustername }}-", host-decl-name, ".iso");
 
   }
 {% endif %}

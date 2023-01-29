@@ -94,7 +94,7 @@
           owner: root
           group: root
           mode: 644
-        when: inventory_hostname_short in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
+        when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
 
 
       - name: "xtoph_ocp4 : config-bastion-ai : merge nmstate with host static_network_config(s)"
@@ -135,7 +135,7 @@
     - t_name:      "{{ inventory_hostname_short }}"
     - t_addr:      "{{ h_pubIP  }}"
     - t_mac:       "{{ xtoph_ocp4.rhcos.nic_mac }}"
-    - t_netdev:    "{{ xtoph_ocp4.rhcos.new_nicdev }}"
+    - t_netdev:    "{{ xtoph_ocp4.rhcos.nic_dev }}"
     - t_dns:       "{{ xtoph_ocp4.network.nameserver }}"
     - t_prefix:    "{{ xtoph_ocp4.network.prefix }}"
     - t_gateway:   "{{ xtoph_ocp4.network.gateway }}"

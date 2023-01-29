@@ -2,6 +2,21 @@
   run_once: true
   block:
 
+      #
+      #    Proceed with ai cleanup if bastion is up
+      #
+
+      - name: "xtoph_ocp4 : preunistall-node-shutdown : test if bastion is accessible"
+        delegate_to: localhost
+        wait_for:
+          host: "{{ inventory_hostname }}"
+          connect_timeout: 5
+          port: 22
+          sleep: 1
+          state: started
+          timeout: 10
+        register: ssh_status
+        ignore_errors: yes
 
       #
       #    If this is an assisted-installer 
@@ -9,9 +24,18 @@
       #    in the AI portal
       #
 
+      - name: "xtoph_ocp4 : preunistall-node-shutdown : check for ocm offline token"
+        stat:
+          path: "{{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt"
+        register: token_test
+        when: ssh_status is not failed
+
       - name: "xtoph_ocp4 : preunistall-node-shutdown : load ocm offline token"
         shell: cat {{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt
         register: ocm_token
+        when:  
+          - ssh_status is not failed
+          - token_test.stat.exists
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : delete cluster configuration (ignore error if it does not)"
         shell:
@@ -19,6 +43,9 @@
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                 delete cluster {{ xtoph_ocp4.ocp.clustername }} -y
         ignore_errors: true
+        when: 
+          - ssh_status is not failed
+          - token_test.stat.exists
 
   when:
     - xtoph_ocp4.bastion.assisted_installer == true
@@ -53,6 +80,7 @@
           state: started
           timeout: 10
         register: ssh_status
+        ignore_errors: yes
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : issue gracefull OCP node shutdown"
         delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
@@ -70,6 +98,7 @@
           state: stopped
           timeout: 180
         ignore_errors: yes
+        when: ssh_status is not failed
 
   rescue:
       - debug: msg="node {{inventory_hostname}} is already down"

@@ -4,7 +4,6 @@
   blk_dev:          "{{ h_rhcosDEV      | default('') }}"
   bond_dev:         "{{ h_rhcosBOND     | default('')  }}"
   nic_dev:          "{{ h_rhcosNIC      | default('--required--') }}"
-  new_nicdev:       "{{ h_rhcosNICDEV   | default('--required--') }}"
   nic_mac:          "{{ h_pubMAC        | default('--required--') }}"
   usb_delay:        "{{ h_rhcosUSBdelay | default('') }}"
 
