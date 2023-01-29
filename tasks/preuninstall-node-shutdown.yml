@@ -73,7 +73,7 @@
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : test existence of node via ssh port"
         wait_for:
-          host: "{{ ansible_host }}"
+          host: "{{ inventory_hostname }}"
           connect_timeout: 5
           port: 22
           sleep: 1
@@ -86,12 +86,12 @@
         delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
         shell:
           cmd: |
-            ssh core@{{ inventory_hostname_short }}.{{xtoph_ocp4.ocp.cluster_fqdn }} nohup 'sleep 3 && sudo shutdown -h now' &
+            ssh core@{{ inventory_hostname }} nohup 'sleep 3 && sudo shutdown -h now' &
         when: ssh_status is not failed
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : wait for OCP node systemd port stopped"
         wait_for:
-          host: "{{ inventory_hostname_short }}.{{xtoph_ocp4.ocp.cluster_fqdn }}"
+          host: "{{ inventory_hostname }}"
           connect_timeout: 3
           port: 111
           sleep: 5
