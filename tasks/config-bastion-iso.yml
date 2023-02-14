@@ -55,7 +55,7 @@
       #           I need to add "coreos.inst.insecure=yes" 
       #           to my list of kernel options
       #
-    
+
       - name: "xtoph_ocp4 : config-bastion-iso : customize isolinux configs"
         replace:
           path: "{{ t_tmp_subdir }}/isolinux/isolinux.cfg"
@@ -65,10 +65,10 @@
               usb-storage.delay_use={{t_usbdelay}} 
               ip={{ t_network }} 
               {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
-              "coreos.inst=yes" 
-              "coreos.inst.insecure=yes" 
-              "coreos.inst.install_dev={{ t_storage }}" 
-              "coreos.inst.ignition_url=http://{{ t_addr }}:{{ t_port }}/ignition?mac={{ t_mac }}"
+              coreos.inst=yes
+              coreos.inst.insecure=yes
+              coreos.inst.install_dev={{ t_storage }}
+              coreos.inst.ignition_url=http://{{ t_addr }}:{{ t_port }}/ignition?mac={{ t_mac }}
 
       - name: "xtoph_ocp4 : config-bastion-iso : customize grub configs"
         replace:
@@ -79,10 +79,10 @@
               usb-storage.delay_use={{t_usbdelay}} 
               ip={{ t_network }} 
               {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
-              "coreos.inst=yes" 
-              "coreos.inst.insecure=yes" 
-              "coreos.inst.install_dev={{ t_storage }}" 
-              "coreos.inst.ignition_url=http://{{ t_addr }}:{{ t_port }}/ignition?mac={{ t_mac }}"
+              coreos.inst=yes
+              coreos.inst.insecure=yes
+              coreos.inst.install_dev={{ t_storage }}
+              coreos.inst.ignition_url=http://{{ t_addr }}:{{ t_port }}/ignition?mac={{ t_mac }}
 
       - name: "xtoph_ocp4 : config-bastion-iso : preserve ISO volume id"
         shell:
@@ -123,6 +123,7 @@
           cmd: |
             if [[ -d "{{ t_tmp }}" ]] ; then rm -rf "{{ t_tmp }}" ; fi
         when: xtoph_ocp4._cleanup == True
+
 
 
 

@@ -15,7 +15,7 @@
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
-                list hosts | grep {{ inventory_hostname_short }} | tr '[+\-\|]'  '[  ,]' | sed -e 's| *, *|,|g' -e 's|^,||g' -e 's|,$||g' | cut -d , -f 5
+                list hosts | grep {{ inventory_hostname }} | tr '[+\-\|]'  '[  ,]' | sed -e 's| *, *|,|g' -e 's|^,||g' -e 's|,$||g' | cut -d , -f 5
         register: aicli_status
         until: aicli_status.stdout == "known" 
         delay: 5
@@ -25,14 +25,14 @@
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
-                update host {{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }} -P role=worker
+                update host {{ inventory_hostname }} -P role=worker
         when: inventory_hostname in xtoph_ocp4._cluster_workers
        
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) set node roles"
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
-                update host {{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }} -P role=master
+                update host {{ inventory_hostname }} -P role=master
         when: inventory_hostname_short in xtoph_ocp4._cluster_masters
        
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster ready"
@@ -151,7 +151,7 @@
             mv -f {{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeadmin-password.{{ xtoph_ocp4.ocp.clustername }} \
                   {{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeadmin-password
 
-      - name: "xtoph_ocp4 : preinstall-workers : wait for availability of api"
+      - name: "xtoph_ocp4 : preinstall-workers : (AI) wait for availability of api"
         run_once: true
         wait_for:
           host: "{{ xtoph_ocp4.ocp.vip_api }}"
@@ -162,9 +162,12 @@
           state: started
           timeout: 1800
 
-  when:
-    - xtoph_ocp4.bastion.assisted_installer is defined and
-      xtoph_ocp4.bastion.assisted_installer == true
+  when: xtoph_ocp4.ocp.provisioner == "ai"
+
+#    - xtoph_ocp4.bastion.assisted_installer is defined and
+#      xtoph_ocp4.bastion.assisted_installer == true and
+#      xtoph_ocp4.ocp.provisioner == "ai"
+      
 
 
 
