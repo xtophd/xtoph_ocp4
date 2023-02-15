@@ -22,7 +22,7 @@
 
       
       - name: "xtoph_ocp4 : config-bastion-pxe : package installation"
-        yum: name=tftp-server,ipxe-bootimgs,syslinux-tftpboot,yum-utils state=installed
+        yum: name=tftp-server,ipxe-bootimgs,syslinux-tftpboot,yum-utils,xorriso state=installed
     
       - name: "xtoph_ocp4 : config-bastion-pxe : create tftpboot directories"
         file:
@@ -60,6 +60,39 @@
 
 
 
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : NEW clone ISO source to temp workspace"
+        run_once: true
+        shell:
+          cmd: |
+            xorriso -osirrox on -indev "{{ t_src_iso }}" -extract / "{{ t_tmp_subdir }}"
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : NEW mount efiboot.img"
+        run_once: true
+        shell:
+          cmd: |
+            mount -o ro "{{ t_tmp_subdir }}/images/efiboot.img" /mnt
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : extract efi files to tftpboot"
+        copy: 
+          src:   "{{ item }}"
+          dest:  "/var/lib/tftpboot/efi"
+          mode:  "0644"
+          owner: root
+          group: root
+          remote_src: yes
+        with_items:
+          - "/mnt/EFI/BOOT/BOOTX64.efi"
+          - "/mnt/EFI/BOOT/grubx64.efi"
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : NEW unmount efiboot.img"
+        run_once: true
+        shell:
+          cmd: |
+            umount /mnt
+
+
+
       # 2021-07-14: Replaced with shell command below
       #- name: "xtoph_ocp4 : config-bastion-pxe : download rpms (do not install) for efi artifacts"
       #  yum: 
@@ -73,50 +106,51 @@
       #           clean build, reverted to using shell
 
 
+#      - name: "common-dhcp-setup : download rpms (do not install) for efi artifacts"
+#        shell:
+#          cmd: |
+#            cd /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi;  yumdownloader {{ item }}
+#        with_items:
+#          - "shim-x64"
+#          - "grub2-efi-x64"
+#    
+#      - name: "xtoph_ocp4 : config-bastion-pxe : unpack contents of rpms for efi artifacts"
+#        shell:
+#          cmd: |
+#            cd /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi; rpm2cpio {{ item }}*.rpm | cpio -dimv
+#        with_items:
+#          - "shim-x64"
+#          - "grub2-efi"
+#    
+#      - name: "xtoph_ocp4 : config-bastion-pxe : copy efi files to tftpboot (Red Hat)"
+#        copy: 
+#          src:   "{{ item }}"
+#          dest:  "/var/lib/tftpboot/efi"
+#          mode:  "0644"
+#          owner: root
+#          group: root
+#          remote_src: yes
+#        with_items:
+#          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/redhat/shimx64.efi"
+#          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/redhat/grubx64.efi"
+#        when:
+#          - ansible_distribution == "RedHat"
+#
+#      - name: "xtoph_ocp4 : config-bastion-pxe : copy efi files to tftpboot (CentOS)"
+#        copy: 
+#          src:   "{{ item }}"
+#          dest:  "/var/lib/tftpboot/efi"
+#          mode:  "0644"
+#          owner: root
+#          group: root
+#          remote_src: yes
+#        with_items:
+#          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/centos/shimx64.efi"
+#          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/centos/grubx64.efi"
+#        when:
+#          - ansible_distribution == "CentOS"
 
-      - name: "common-dhcp-setup : download rpms (do not install) for efi artifacts"
-        shell:
-          cmd: |
-            cd /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi;  yumdownloader {{ item }}
-        with_items:
-          - "shim-x64"
-          - "grub2-efi-x64"
-    
-      - name: "xtoph_ocp4 : config-bastion-pxe : unpack contents of rpms for efi artifacts"
-        shell:
-          cmd: |
-            cd /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi; rpm2cpio {{ item }}*.rpm | cpio -dimv
-        with_items:
-          - "shim-x64"
-          - "grub2-efi"
-    
-      - name: "xtoph_ocp4 : config-bastion-pxe : copy efi files to tftpboot (Red Hat)"
-        copy: 
-          src:   "{{ item }}"
-          dest:  "/var/lib/tftpboot/efi"
-          mode:  "0644"
-          owner: root
-          group: root
-          remote_src: yes
-        with_items:
-          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/redhat/shimx64.efi"
-          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/redhat/grubx64.efi"
-        when:
-          - ansible_distribution == "RedHat"
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : copy efi files to tftpboot (CentOS)"
-        copy: 
-          src:   "{{ item }}"
-          dest:  "/var/lib/tftpboot/efi"
-          mode:  "0644"
-          owner: root
-          group: root
-          remote_src: yes
-        with_items:
-          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/centos/shimx64.efi"
-          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/centos/grubx64.efi"
-        when:
-          - ansible_distribution == "CentOS"
 
       - name: "xtoph_ocp4 : config-bastion-pxe : deploy grub.cfg in tftpboot directory"
         vars:
@@ -167,4 +201,20 @@
         when: 
           - ansible_facts['services']['firewalld.service']['state'] is defined
           - ansible_facts['services']['firewalld.service']['state'] == 'running'
+
+
+  vars:
+    - t_tmp:         "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/iso"
+    - t_tmp_subdir:  "{{ t_tmp }}/{{ inventory_hostname_short }}"
+    - t_name:        "{{ inventory_hostname_short }}"
+    - t_addr:        "{{ xtoph_ocp4.bastion.host_ip }}"
+    - t_port:        "{{ xtoph_ocp4.bastion.matchbox_port }}"
+    - t_clustername: "{{ xtoph_ocp4.ocp.clustername }}"
+    - t_bond:        "{{ xtoph_ocp4.rhcos.bond_dev }}"
+    - t_mac:         "{{ xtoph_ocp4.rhcos.nic_mac }}"
+    - t_network:     "{{ xtoph_ocp4.rhcos.nic_dev }}"
+    - t_storage:     "{{ xtoph_ocp4.rhcos.blk_dev }}"
+    - t_usbdelay:    "{{ xtoph_ocp4.rhcos.usb_delay }}"
+    - t_src_iso:     "/var/lib/matchbox/assets/{{ xtoph_ocp4.rhcos_assets.iso }}"
+    - t_dest_iso:    "/var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
 
