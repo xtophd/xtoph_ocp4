@@ -6,7 +6,7 @@
       #    Proceed with ai cleanup if bastion is up
       #
 
-      - name: "xtoph_ocp4 : preunistall-node-shutdown : test if bastion is accessible"
+      - name: "xtoph_ocp4 : preunistall-node-shutdown : test if node is accessible"
         delegate_to: localhost
         wait_for:
           host: "{{ inventory_hostname }}"
