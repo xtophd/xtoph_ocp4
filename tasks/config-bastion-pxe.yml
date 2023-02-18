@@ -73,17 +73,36 @@
           cmd: |
             mount -o ro "{{ t_tmp_subdir }}/images/efiboot.img" /mnt
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : extract efi files to tftpboot"
+      - name: "xtoph_ocp4 : config-bastion-pxe : NEW stat if ISO uses BOOTX64.efi"
+        stat:
+          path: "/mnt/EFI/BOOT/BOOTX64.efi"
+        register: test_BOOTX64
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : NEW extract efi files to tftpboot"
         copy: 
-          src:   "{{ item }}"
-          dest:  "/var/lib/tftpboot/efi"
+          src:   "{{ item.src }}"
+          dest:  "{{ item.dest }}"
           mode:  "0644"
           owner: root
           group: root
           remote_src: yes
         with_items:
-          - "/mnt/EFI/BOOT/BOOTX64.efi"
-          - "/mnt/EFI/BOOT/grubx64.efi"
+          - {src: '/mnt/EFI/BOOT/BOOTX64.efi', dest: '/var/lib/tftpboot/efi/shimx64.efi'}
+          - {src: '/mnt/EFI/BOOT/grubx64.efi', dest: '/var/lib/tftpboot/efi/grubx64.efi'}
+        when: test_BOOTX64.stat.exists == true
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : NEW extract (older shimx64) efi files to tftpboot"
+        copy: 
+          src:   "{{ item.src }}"
+          dest:  "{{ item.dest }}"
+          mode:  "0644"
+          owner: root
+          group: root
+          remote_src: yes
+        with_items:
+          - {src: '/mnt/EFI/BOOT/shimx64.efi', dest: '/var/lib/tftpboot/efi/shimx64.efi'}
+          - {src: '/mnt/EFI/BOOT/grubx64.efi', dest: '/var/lib/tftpboot/efi/grubx64.efi'}
+        when: test_BOOTX64.stat.exists == false
 
       - name: "xtoph_ocp4 : config-bastion-pxe : NEW unmount efiboot.img"
         run_once: true

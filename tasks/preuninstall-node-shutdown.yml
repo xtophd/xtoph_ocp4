@@ -49,6 +49,8 @@
 
   when:
     - xtoph_ocp4.bastion.assisted_installer == true
+    - xtoph_ocp4.ocp.provisioner == "ai"
+
 
 
 
