@@ -42,7 +42,23 @@
         ignore_errors: true
         register: aicli_status
       
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new cluster configuration"
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new SNO cluster configuration"
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
+                  create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
+                  -P sno=true                                                     \
+                  -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
+                  -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
+                  -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
+                  -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
+                  -P network_type="OVNKubernetes"                                 \
+                  -P vip_dhcp_allocation="false"                                  
+        when: 
+          - aicli_status.rc != 0 
+          - xtoph_ocp4.ocp.sno == true
+      
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new NORMAL cluster configuration"
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
@@ -53,8 +69,10 @@
                   -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
                   -P network_type="OVNKubernetes"                                 \
                   -P vip_dhcp_allocation="false"                                  
-        when: aicli_status.rc == 1 
-      
+        when: 
+          - aicli_status.rc != 0 
+          - xtoph_ocp4.ocp.sno == false
+
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : update existing cluster configuration"
         shell:
           cmd: |
@@ -66,15 +84,8 @@
                   -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
                   -P network_type="OVNKubernetes"                                 \
                   -P vip_dhcp_allocation="false"                                  
-        when: aicli_status.rc != 0 
+        when: aicli_status.rc == 0 
  
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : update existing cluster configuration as SNO"
-        shell:
-          cmd: |
-            aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
-                  update cluster {{ xtoph_ocp4.ocp.clustername }}                 \
-                  -P sno="true"
-        when: xtoph_ocp4.ocp.sno == true
  
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy nmstate base"
         vars: 
