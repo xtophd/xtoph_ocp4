@@ -151,7 +151,7 @@
             mv -f {{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeadmin-password.{{ xtoph_ocp4.ocp.clustername }} \
                   {{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeadmin-password
 
-      - name: "xtoph_ocp4 : preinstall-workers : (AI) wait for availability of api"
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for availability of api"
         run_once: true
         wait_for:
           host: "{{ xtoph_ocp4.ocp.vip_api }}"
