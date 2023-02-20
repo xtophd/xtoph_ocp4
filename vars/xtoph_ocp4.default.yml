@@ -12,4 +12,5 @@ _cluster_bastion:     "{{ groups['myBastion']   }}"
 _cluster_bootstrap:   "{{ groups['myBootstrap'] }}"
 _cluster_masters:     "{{ groups['myMasters']   }}"
 _cluster_workers:     "{{ groups['myWorkers']   }}"
+_cluster_sno:         "{{ groups['mySNO']   }}"
 
