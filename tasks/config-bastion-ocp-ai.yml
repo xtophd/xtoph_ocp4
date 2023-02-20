@@ -49,6 +49,7 @@
                   create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
                   -P sno=true                                                     \
                   -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
+                  -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
                   -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
                   -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
                   -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
@@ -64,6 +65,7 @@
             aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
                   create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
                   -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
+                  -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
                   -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
                   -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
                   -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
@@ -79,6 +81,7 @@
             aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
                   update cluster {{ xtoph_ocp4.ocp.clustername }}                 \
                   -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
+                  -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
                   -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
                   -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
                   -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
