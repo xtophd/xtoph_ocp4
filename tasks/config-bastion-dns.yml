@@ -48,8 +48,8 @@
           insertbefore: BOF
           block: |
             ##
-            ## NOTE - dns entries for the OCP cluster are in /etc/dnsmasq.d/
-            ## NOTE - this includes PTR, CNAME, SVR and WILDCARDS
+            ## NOTE - only IP and NAMES for OCP cluster nodes are in /etc/hosts
+            ## NOTE - additional PTR,CNAME, SVR and WILCARDS  are in /etc/dnsmasq.d/
             ## NOTE - resolv.conf should point to localhost 127.0.0.1
             ##
           state:  present
@@ -115,57 +115,33 @@
           - { src: "dnsmasq-wildcard-entry.j2", dest: "/etc/dnsmasq.d/45-{{ p_cluster_fqdn }}-wildcard.conf" }
 
       #
-      #    Nodes: deploy distinct configuration files for each OCP node
+      #    Nodes: get simple entry in /etc/hosts
       #
 
-## Switched to using FQDN in ansible inventory
-#      - name: "xtoph_ocp4 : config-bastion-dns : deploy CLUSTER host entries"
-#        run_once: false
-#        vars:
-#          - p_name:        "{{ inventory_hostname_short }}"
-#          - p_domain:      "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
-#          - p_addr:        "{{ h_pubIP }}"
-#          - p_revAddr:     "{{ (p_addr.split('.'))[::-1]|join('.') }}"
-#        template:
-#          src:   "dnsmasq-host-entry.j2"
-#          dest:  "/etc/dnsmasq.d/50-{{ p_domain }}-{{ p_name }}.conf"
-#          owner: root
-#          group: root
-#          mode:  644
-#        when:
-#          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_bootstrap
-#          
-#      - name: "xtoph_ocp4 : config-bastion-dns : deploy NON-CLUSTER host entries"
-#        run_once: false
-#        vars:
-#          - p_name:        "{{ inventory_hostname_short }}"
-#          - p_domain:      "{{ xtoph_ocp4.ocp.basedomain }}"
-#          - p_addr:        "{{ h_pubIP }}"
-#          - p_revAddr:     "{{ (p_addr.split('.'))[::-1]|join('.') }}"
-#        template:
-#          src:   "dnsmasq-host-entry.j2"
-#          dest:  "/etc/dnsmasq.d/50-{{ p_domain }}-{{ p_name }}.conf"
-#          owner: root
-#          group: root
-#          mode:  644
-#        when:
-#          - inventory_hostname not in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_bootstrap
-
-
-     
-      - name: "xtoph_ocp4 : config-bastion-dns : deploy host configs"
+      - name: "xtoph_ocp4 : config-bastion-dns : cleanup conflicting IP in /etc/hosts"
+        throttle: 1
         run_once: false
-        vars:
-          - p_name:        "{{ inventory_hostname }}"
-          - p_addr:        "{{ h_pubIP }}"
-          - p_revAddr:     "{{ (p_addr.split('.'))[::-1]|join('.') }}"
-        template:
-          src:   "dnsmasq-host-entry.j2"
-          dest:  "/etc/dnsmasq.d/50-host-{{ p_name }}.conf"
-          owner: root
-          group: root
-          mode:  644
+        lineinfile:
+          dest:   "/etc/hosts"
+          regexp: "{{ h_pubIP }} .*$"
+          state:  absent
 
+      - name: "xtoph_ocp4 : config-bastion-dns : cleanup conflicting name in /etc/hosts"
+        throttle: 1
+        run_once: false
+        lineinfile:
+          dest:   "/etc/hosts"
+          regexp: ".*{{ inventory_hostname }}.*"
+          state:  absent
+
+      - name: "xtoph_ocp4 : config-bastion-dns : add entry in /etc/hosts"
+        throttle: 1
+        run_once: false
+        lineinfile:
+          dest:   "/etc/hosts"
+          line:   "{{ h_pubIP }} {{ inventory_hostname }}"
+          state:  present
+          insertbefore: "^127.0.0.1.*"
 
 
       #
