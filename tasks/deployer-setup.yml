@@ -1,0 +1,37 @@
+## Authors: 
+##   Christoph Doerbeck
+##
+## Summary:
+##
+##
+
+
+
+##
+##    Install common packages
+##
+
+
+
+- name: "xtoph_ocp4 : deployer-setup : install supporting packages (RHEL 7)"
+  yum: name=genisoimage,xorriso,syslinux,git,tree,wget,yum-utils,net-tools,traceroute,nmap,python3,python3-pip state=installed
+  when:
+    - ansible_distribution == "RedHat" or ansible_distribution == "CentOS"
+    - ansible_distribution_major_version == "7"
+
+- name: "xtoph_ocp4 : deployer-setup : install supporting packages (RHEL 8)"
+  yum: name=genisoimage,xorriso,syslinux,git,wget,yum-utils,net-tools,traceroute,nmap,python3,python3-pip  state=installed
+  when:
+    - ansible_distribution == "RedHat" or ansible_distribution == "CentOS"
+    - ansible_distribution_major_version == "8"
+
+- name: "xtoph_ocp4 : deployer-setup : install supporting packages (RHEL 9)"
+  yum: name=genisoimage,xorriso,syslinux,git,wget,yum-utils,net-tools,traceroute,nmap,python3,python3-pip  state=installed
+  when:
+    - ansible_distribution == "RedHat" or ansible_distribution == "CentOS"
+    - ansible_distribution_major_version == "9"
+
+- name: "xtoph_ocp4 : config-bastion-ocp-ai : pip install aicli"
+  pip:
+    name: aicli
+    state: present
