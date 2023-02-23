@@ -51,7 +51,7 @@
       #    Proceed with node shutdown if it is up, and wait
       #
 
-      - name: "xtoph_ocp4 : preunistall-node-shutdown : test existence of node via ssh port"
+      - name: "xtoph_ocp4 : preunistall-node-shutdown : test existence of OCP node via ssh port"
         wait_for:
           host: "{{ inventory_hostname }}"
           connect_timeout: 5
@@ -71,14 +71,6 @@
           - ssh_status is not failed
           - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
 
-      - name: "xtoph_ocp4 : preunistall-node-shutdown : issue gracefull node shutdown"
-        shell:
-          cmd: |
-            ssh {{ inventory_hostname }} nohup 'sleep 3 && poweroff' &
-        when: 
-          - ssh_status is not failed
-          - inventory_hostname ! in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
-
       - name: "xtoph_ocp4 : preunistall-node-shutdown : wait for OCP node systemd port stopped"
         wait_for:
           host: "{{ inventory_hostname }}"
@@ -88,7 +80,9 @@
           state: stopped
           timeout: 180
         ignore_errors: yes
-        when: ssh_status is not failed
+        when: 
+          - ssh_status is not failed
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
 
   rescue:
       - debug: msg="node {{inventory_hostname}} is already down"
