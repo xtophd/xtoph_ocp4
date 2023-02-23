@@ -230,7 +230,15 @@
 ##    based on variable xtoph_ocp4_action
 ##
 
-- include_tasks: "config-bastion.yml"
+
+- name: "main.yml : setup deployhost (controller)"
+  include_tasks: "deployer-setup.yml"
+  when:
+    - xtoph_ocp4_action == "setup"
+
+
+- name: "main.yml : configure bastion host"
+  include_tasks: "config-bastion.yml"
   when:
     - xtoph_ocp4_action == "config-bastion"
 
