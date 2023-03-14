@@ -44,8 +44,8 @@
       
       
       
-      ##    xtoph_ocp4 .......... baseline is loaded during default vars above
-      ##                          here we only overlay the custom values
+      ##    xtoph_ocp4 ............ baseline is loaded during default vars above
+      ##                            here we only overlay the custom values
       
       - name: "main.yml : apply custom_xtoph_ocp4 => xtoph_ocp4"
         set_fact:
@@ -55,8 +55,8 @@
       
       
       
-      ##    xtoph_ocp4.network .. graft default_network
-      ##                          overlay custom_network
+      ##    xtoph_ocp4.network .... graft default_network
+      ##                            overlay custom_network
       
       - name: "main.yml : graft network details => xtoph_ocp4.network"
         set_fact:
@@ -71,8 +71,8 @@
 
       
       
-      ##    xtoph_ocp4.bastion .. graft default_bastion
-      ##                          overlay custom_bastion
+      ##    xtoph_ocp4.bastion .... graft default_bastion
+      ##                            overlay custom_bastion
       
       - name: "main.yml : graft default _bastion_profile => xtoph_ocp4.bastion"
         set_fact:
@@ -87,8 +87,8 @@
       
       
       
-      ##    xtoph_ocp4.ocp         .. graft default_ocp
-      ##                              overlay custom_ocp
+      ##    xtoph_ocp4.ocp ....... graft default_ocp
+      ##                           overlay custom_ocp
       
       - name: "main.yml : graft default _ocp_profile => xtoph_ocp4.ocp"
         set_fact:
@@ -103,8 +103,8 @@
       
       
       
-      ##    xtoph_ocp4.rhcos       .. graft default_rhcos
-      ##                              overlay custom_rhcos
+      ##    xtoph_ocp4.rhcos ..... graft default_rhcos
+      ##                           overlay custom_rhcos
       
       - name: "main.yml : graft default _rhcos_profile details => xtoph_ocp4.rhcos"
         set_fact:
@@ -119,13 +119,9 @@
       
       
       
-      ##
-      ##    Graft assets for specified Openshift version
-      ##    on to xtoph_ocp4
-      ##
-      
-      ##    xtoph_ocp4.ocp_assets
-      
+      ##    xtoph_ocp4.ocp_assets ... graft ocp assets for specified version
+      ##                              overlay custom_assets_openshift
+
       - name: "main.yml : graft default ocp_assets => xtoph_ocp4.ocp_assets"
         set_fact:
           xtoph_ocp4: "{{ xtoph_ocp4 | combine({'ocp_assets': default_assets_openshift[xtoph_ocp4.ocp.version] }, recursive=true) }}"
@@ -139,7 +135,8 @@
       
       
       
-      ##    xtoph_ocp4.rhcos_assets
+      ##    xtoph_ocp4.rhcos_assets .. graft rhcos assets for specified version
+      ##                               overlay custom_assets_rhcos
       
       - name: "main.yml : graft default rhcos_assets => xtoph_ocp4.rhcos_assets"
         set_fact:
@@ -154,7 +151,8 @@
       
       
       
-      ##    xtoph_ocp4.matchbox_assets
+      ##    xtoph_ocp4.matchbox_assets ... graft matchbox assets for specified version
+      ##                                   overlay custom_assets_matchbox
       
       - name: "main.yml : graft matchbox assets => xtoph_ocp4.matchbox_assets"
         set_fact:
@@ -232,7 +230,15 @@
 ##    based on variable xtoph_ocp4_action
 ##
 
-- include_tasks: "config-bastion.yml"
+
+- name: "main.yml : setup deployhost (controller)"
+  include_tasks: "deployer-setup.yml"
+  when:
+    - xtoph_ocp4_action == "setup"
+
+
+- name: "main.yml : configure bastion host"
+  include_tasks: "config-bastion.yml"
   when:
     - xtoph_ocp4_action == "config-bastion"
 

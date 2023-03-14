@@ -9,14 +9,14 @@
       - name: "xtoph_ocp4 : config-bastion--tests : test fqdn lookup of all nodes"
         vars: 
           - p_server:  "localhost"
-          - p_name:    "{{ inventory_hostname_short }}"
+          - p_name:    "{{ inventory_hostname }}"
           - p_addr:    "{{ h_pubIP }}"
           - p_domain:  "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
         when:
           - workshop_vars.bastion.dns == true
         shell: 
           cmd: |
-            dig @{{ p_server }} {{ p_name }}.{{ p_domain }} +short
+            dig @{{ p_server }} {{ p_name }} +short
             dig -x @{{ p_server }} {{ p_addr }} +short
         loop: "{{ cluster_hosts }}"
         changed_when: false
@@ -29,6 +29,36 @@
           - p_server:  "localhost"
           - p_name:    "foo"
           - p_domain:  "{{ xtoph_ocp4.ocp.wildcard_fqdn }}"
+        when:
+          - workshop_vars.bastion.dns == true
+        shell: 
+          cmd: |
+            dig @{{ p_server }} {{ p_name }}.{{ p_domain }} +short
+        changed_when: false
+
+
+
+      - name: "xtoph_ocp4 : config-bastion--tests : test api"
+        run_once: true
+        vars: 
+          - p_server:  "localhost"
+          - p_name:    "api"
+          - p_domain:  "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+        when:
+          - workshop_vars.bastion.dns == true
+        shell: 
+          cmd: |
+            dig @{{ p_server }} {{ p_name }}.{{ p_domain }} +short
+        changed_when: false
+
+
+
+      - name: "xtoph_ocp4 : config-bastion--tests : test api-int"
+        run_once: true
+        vars: 
+          - p_server:  "localhost"
+          - p_name:    "api-int"
+          - p_domain:  "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
         when:
           - workshop_vars.bastion.dns == true
         shell: 

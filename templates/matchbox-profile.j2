@@ -22,7 +22,7 @@
     "coreos.inst.insecure=yes",
     "coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }}",
 {% endif %}
-{% if t_loader == "efi" %}
+{% if t_loader == "uefi" %}
     "coreos.inst.ignition_url=http://{{ t_addr}}:{{ t_port }}/ignition?mac=$net_default_mac"
 {% else %}
     "coreos.inst.ignition_url=http://{{ t_addr}}:{{ t_port }}/ignition?mac=${mac:hexhyp}"

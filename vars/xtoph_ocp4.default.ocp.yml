@@ -2,8 +2,8 @@
 "workshop-vars":
   admin_user:       "{{ workshop_vars.ocp_admin_user      | default('cloud-admin')  }}"
   basedomain:       "{{ workshop_vars.network_basedomain  | default('--required--') }}"
-  clustername:      "{{ workshop_vars.clustername         | default('--required--') }}"
-  cluster_fqdn:     "{{ workshop_extras.network_fqdn      | default('--required--') }}"
+  clustername:      "{{ workshop_vars.ocp_clustername     | default('--required--') }}"
+  cluster_fqdn:     "{{ workshop_vars.ocp_cluster_fqdn    | default('--required--') }}"
 
   vip_cluster:      "{{ workshop_vars.ocp_vip_cluster     | default('') }}"
   vip_api:          "{{ workshop_vars.ocp_vip_api         | default('') }}"
@@ -17,6 +17,7 @@
   https_proxy:      "{{ workshop_vars.https_proxy         | default('')             }}"
   no_proxy:         "{{ workshop_vars.no_proxy            | default('')             }}"
   provisioner:      "{{ workshop_vars.ocp_provisioner     | default('upi')          }}"
+  sno:              "{{ workshop_vars.ocp_sno             | default(False)          }}"
 
 "ocp-4.11":
   admin_user:       "cloud-admin"
@@ -32,6 +33,7 @@
   https_proxy:      ""
   no_proxy:         ""
   provisioner:      "--required--"
+  sno:              False
 
 "ocp-4.10":
   admin_user:       "cloud-admin"
@@ -47,6 +49,7 @@
   https_proxy:      ""
   no_proxy:         ""
   provisioner:      "--required--"
+  sno:              False
 
 "ocp-4.9":
   admin_user:       "cloud-admin"
@@ -62,6 +65,7 @@
   https_proxy:      ""
   no_proxy:         ""
   provisioner:      "--required--"
+  sno:              False
 
 "ocp-4.8":
   admin_user:       "cloud-admin"
@@ -77,6 +81,7 @@
   https_proxy:      ""
   no_proxy:         ""
   provisioner:      "--required--"
+  sno:              False
 
 "ocp-4.7":
   admin_user:       "cloud-admin"
@@ -92,6 +97,7 @@
   https_proxy:      ""
   no_proxy:         ""
   provisioner:      "upi"
+  sno:              False
 
 "ocp-4.6":
   admin_user:       "cloud-admin"
@@ -107,6 +113,7 @@
   https_proxy:      ""
   no_proxy:         ""
   provisioner:      "upi"
+  sno:              False
 
 "ocp-4.5":
   admin_user:       "cloud-admin"
@@ -122,6 +129,7 @@
   https_proxy:      ""
   no_proxy:         ""
   provisioner:      "upi"
+  sno:              False
 
 "ocp-4.4":
   admin_user:       "cloud-admin"
@@ -137,6 +145,7 @@
   https_proxy:      ""
   no_proxy:         ""
   provisioner:      "upi"
+  sno:              False
 
 "ocp-4.3":
   admin_user:       "cloud-admin"
@@ -152,6 +161,7 @@
   https_proxy:      ""
   no_proxy:         ""
   provisioner:      "upi"
+  sno:              False
 
 "ocp-4.2":
   admin_user:       "cloud-admin"
@@ -167,4 +177,5 @@
   https_proxy:      ""
   no_proxy:         ""
   provisioner:      "upi"
+  sno:              False
 

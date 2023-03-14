@@ -45,9 +45,11 @@
     
     
       - name: "xtoph_ocp4 : config-bastion-workshop-user : create workshopuser-username UID"
+        vars:
+          t_pass:  "{{ workshopuser_password | default(lookup('password', '/dev/null length=15 chars=ascii_letters')) }}"
         user:
           name: "{{ workshopuser_username }}"
-          password: "{{ workshopuser_password | password_hash('sha512') }}"
+          password: "{{ t_pass | password_hash('sha512') }}"
           group: "{{ workshopuser_username }}"
           state: present
     

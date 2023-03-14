@@ -1,7 +1,6 @@
-- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+- delegate_to: localhost 
   run_once: true
   block:
-
 
       #
       #    If this is an assisted-installer 
@@ -9,9 +8,16 @@
       #    in the AI portal
       #
 
+      - name: "xtoph_ocp4 : preunistall-node-shutdown : check for ocm offline token"
+        stat:
+          path: "./config/ocm-token.txt"
+        register: token_test
+
       - name: "xtoph_ocp4 : preunistall-node-shutdown : load ocm offline token"
-        shell: cat {{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt
+        shell: cat ./config/ocm-token.txt
         register: ocm_token
+        when:  
+          - token_test.stat.exists
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : delete cluster configuration (ignore error if it does not)"
         shell:
@@ -19,57 +25,65 @@
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                 delete cluster {{ xtoph_ocp4.ocp.clustername }} -y
         ignore_errors: true
+        when: 
+          - token_test.stat.exists
 
   when:
     - xtoph_ocp4.bastion.assisted_installer == true
-
-
+    - xtoph_ocp4.ocp.provisioner == "ai"
 
 
 
 - delegate_to: localhost 
   block:
 
-      - name: "xtoph_ocp4 : preunistall-node-shutdown : test existence of node via ssh port"
-        wait_for:
-          host: "{{ ansible_host }}"
-          connect_timeout: 5
-          port: 22
-          sleep: 1
-          state: started
-          timeout: 10
-
       #
       #    Remove the openshift deployment lock
       #
 
       - name: "xtoph_ocp4: config-bastion-ocp-unlock : remove lock ({{ workshop_extras.ocp_creds_dir }}/xtoph_ocp4_deployment.lock)"
+        run_once: true
         file:
           path:  "{{ xtoph_ocp4.ocp.creds_dir }}/xtoph_ocp4_deployment.lock"
           state: absent
 
       #
-      #    Proceed with node shutdown and wait
+      #    Proceed with node shutdown if it is up, and wait
       #
+
+      - name: "xtoph_ocp4 : preunistall-node-shutdown : test existence of OCP node via ssh port"
+        wait_for:
+          host: "{{ inventory_hostname }}"
+          connect_timeout: 5
+          port: 22
+          sleep: 1
+          state: started
+          timeout: 10
+        register: ssh_status
+        ignore_errors: yes
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : issue gracefull OCP node shutdown"
         delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
         shell:
           cmd: |
-            ssh core@{{ inventory_hostname_short }}.{{xtoph_ocp4.ocp.cluster_fqdn }} nohup 'sleep 3 && sudo shutdown -h now' &
+            ssh core@{{ inventory_hostname }} nohup 'sleep 3 && sudo shutdown -h now' &
+        when: 
+          - ssh_status is not failed
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : wait for OCP node systemd port stopped"
         wait_for:
-          host: "{{ inventory_hostname_short }}.{{xtoph_ocp4.ocp.cluster_fqdn }}"
+          host: "{{ inventory_hostname }}"
           connect_timeout: 3
           port: 111
           sleep: 5
           state: stopped
           timeout: 180
         ignore_errors: yes
+        when: 
+          - ssh_status is not failed
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
 
   rescue:
       - debug: msg="node {{inventory_hostname}} is already down"
-
-
 

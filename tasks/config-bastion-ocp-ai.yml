@@ -6,6 +6,8 @@
   block:
 
 
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : install additional packages"
+        yum: name=python3-pip state=installed
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : clean-up ai work directory {{ t_tmpdir }}"
         run_once: true
@@ -19,14 +21,10 @@
           mode="0755"
           state=directory
 
-
-
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : pip install aicli"
         pip:
           name: aicli
           state: present
- 
-
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : load ocm offline token"
         shell: cat {{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt
@@ -35,9 +33,7 @@
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : load ssh key"
         shell: cat /root/.ssh/id_rsa.pub
         register: ssh_key
-
-
-     
+ 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : test for existing cluster configuration"
         shell:
           cmd: |
@@ -45,38 +41,54 @@
                 info cluster {{ xtoph_ocp4.ocp.clustername }} 
         ignore_errors: true
         register: aicli_status
-
       
-      
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new cluster configuration"
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new SNO cluster configuration"
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
                   create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
+                  -P sno=true                                                     \
                   -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
+                  -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
                   -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
                   -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
                   -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
                   -P network_type="OVNKubernetes"                                 \
                   -P vip_dhcp_allocation="false"                                  
-        when: aicli_status.rc == 1 
-    
+        when: 
+          - aicli_status.rc != 0 
+          - xtoph_ocp4.ocp.sno == true
       
-      
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new NORMAL cluster configuration"
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
+                  create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
+                  -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
+                  -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
+                  -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
+                  -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
+                  -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
+                  -P network_type="OVNKubernetes"                                 \
+                  -P vip_dhcp_allocation="false"                                  
+        when: 
+          - aicli_status.rc != 0 
+          - xtoph_ocp4.ocp.sno == false
+
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : update existing cluster configuration"
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
                   update cluster {{ xtoph_ocp4.ocp.clustername }}                 \
                   -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
+                  -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
                   -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
                   -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
                   -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
                   -P network_type="OVNKubernetes"                                 \
                   -P vip_dhcp_allocation="false"                                  
-        when: aicli_status.rc != 0 
-   
-
+        when: aicli_status.rc == 0 
+ 
  
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy nmstate base"
         vars: 
@@ -88,6 +100,7 @@
           group: root
           mode: 644
 
+
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy nmstate static network configs"
         run_once: false
         vars:
@@ -98,7 +111,8 @@
           owner: root
           group: root
           mode: 644
-        when: inventory_hostname_short in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
+        when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+
 
       - name: "xtoph_ocp4 : config-bastion-ai : merge nmstate with host static_network_config(s)"
         shell:
@@ -113,7 +127,7 @@
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                   update cluster {{ xtoph_ocp4.ocp.clustername }}  \
                   --paramfile nmstate.yml
- 
+
       - name: "xtoph_ocp4 : config-bastion-ai : cleanup any prior iso download"
         file:
           path: "/var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}.iso"
@@ -138,7 +152,7 @@
     - t_name:      "{{ inventory_hostname_short }}"
     - t_addr:      "{{ h_pubIP  }}"
     - t_mac:       "{{ xtoph_ocp4.rhcos.nic_mac }}"
-    - t_netdev:    "{{ xtoph_ocp4.rhcos.new_nicdev }}"
+    - t_netdev:    "{{ xtoph_ocp4.rhcos.nic_dev }}"
     - t_dns:       "{{ xtoph_ocp4.network.nameserver }}"
     - t_prefix:    "{{ xtoph_ocp4.network.prefix }}"
     - t_gateway:   "{{ xtoph_ocp4.network.gateway }}"

@@ -8,16 +8,16 @@
       - debug:
           msg: 
             - "DEBUG: ***"
-            - "DEBUG: *** IF PERFORMING MANUAL DEPLOYMENT, TIME TO DEPLOY: {{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+            - "DEBUG: *** IF PERFORMING MANUAL DEPLOYMENT, TIME TO DEPLOY: {{ inventory_hostname }}"
             - "DEBUG: ***"
 
       - debug:
-          msg: "DEBUG: about to test ssh port on {{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}" 
+          msg: "DEBUG: about to test ssh port on {{ inventory_hostname }}" 
         when: xtoph_ocp4._debug == true
 
       - name: "xtoph_ocp4 : postinstall-node : wait for ssh alive"
         wait_for:
-          host: "{{ inventory_hostname_short }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
+          host: "{{ inventory_hostname }}"
           connect_timeout: 5
           port: 22
           sleep: 15

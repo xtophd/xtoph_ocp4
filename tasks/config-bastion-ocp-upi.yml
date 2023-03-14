@@ -67,7 +67,7 @@
                 owner: root
                 group: root
                 mode: 644
-            when: xtoph_ocp4.ocp.version is version('4.9',operator='<')
+              when: xtoph_ocp4.ocp.version is version('4.9',operator='<')
     
             - name: "xtoph_ocp4 : config-bastion-openshift : deploy install-config.yml using OVN"
               vars:

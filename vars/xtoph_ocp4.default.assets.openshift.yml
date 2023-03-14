@@ -1,9 +1,23 @@
+"4.12":
+  name:        "openshift"
+  version:     "4.12"
+  url:         "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.12.4"
+  install_tar: "openshift-install-linux-4.12.4.tar.gz"
+  client_tar:  "openshift-client-linux-4.12.4.tar.gz"
+
 "4.11":
   name:        "openshift"
   version:     "4.11"
-  url:         "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.11.2"
-  install_tar: "openshift-install-linux-4.11.2.tar.gz"
-  client_tar:  "openshift-client-linux-4.11.2.tar.gz"
+  url:         "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.11.19"
+  install_tar: "openshift-install-linux-4.11.19.tar.gz"
+  client_tar:  "openshift-client-linux-4.11.19.tar.gz"
+
+#"4.11":
+#  name:        "openshift"
+#  version:     "4.11"
+#  url:         "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.11.2"
+#  install_tar: "openshift-install-linux-4.11.2.tar.gz"
+#  client_tar:  "openshift-client-linux-4.11.2.tar.gz"
 
 "4.10":
   name:        "openshift"

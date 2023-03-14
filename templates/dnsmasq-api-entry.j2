@@ -1,7 +1,28 @@
-## Public and Private API entries
+# Public and Private API entries
 
-address=/api.{{ p_domain }}/{{ p_addr }}
-ptr-record={{ p_revAddr }}.in-addr.arpa,api.{{ p_domain }}
+# IF
+#    ai && sno cluster : IPs point to SNO node so we use CNAME
+# ELSEIF 
+#    ai && traditional cluster : uniqie service IPs, use PTR
+# ELSE
+#    upi && traditional cluster : CNAMES point to bastion/haproxy
 
-address=/api-int.{{ p_domain }}/{{ p_addr }}
-ptr-record={{ p_revAddr }}.in-addr.arpa,api-int.{{ p_domain }}
+{% if (xtoph_ocp4.ocp.provisioner == 'ai') and (xtoph_ocp4.ocp.sno == True) %}
+
+cname=api.{{ p_cluster_fqdn }},{{ xtoph_ocp4._cluster_sno | first }}
+cname=api-int.{{ p_cluster_fqdn }},{{ xtoph_ocp4._cluster_sno | first }}
+
+{% elif (xtoph_ocp4.ocp.provisioner == 'ai') and (xtoph_ocp4.ocp.sno == False) %}
+
+address=/api.{{ p_cluster_fqdn }}/{{ p_api_addr }}
+ptr-record={{ p_api_revAddr }}.in-addr.arpa,api.{{ p_cluster_fqdn }}
+
+address=/api-int.{{ p_cluster_fqdn }}/{{ p_api_addr }}
+ptr-record={{ p_revAddr }}.in-addr.arpa,api-int.{{ p_cluster_fqdn }}
+
+{% else %}
+
+cname=api.{{ p_cluster_fqdn }},{{ xtoph_ocp4.bastion.host_fqdn }}
+cname=api-int.{{ p_cluster_fqdn }},{{ xtoph_ocp4.bastion.host_fqdn }}
+
+{% endif %}
