@@ -33,14 +33,14 @@
           file: '{{ item.filename }}'
         when: item.filename|length > 0
         loop:
-          - { varname: 'custom_xtoph_ocp4',       filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.yml") }}' }
-          - { varname: 'custom_network',          filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.network.yml") }}' }
-          - { varname: 'custom_ocp',              filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.ocp.yml") }}' }
-          - { varname: 'custom_bastion',          filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.bastion.yml") }}' }
-          - { varname: 'custom_rhcos',            filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.rhcos.yml") }}' }
-          - { varname: 'custom_assets_openshift', filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.assets.openshift.yml") }}' }
-          - { varname: 'custom_assets_rhcos',     filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.assets.rhcos.yml") }}' }
-          - { varname: 'custom_assets_matchbox',  filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph_ocp4.config.assets.matchbox.yml") }}' }
+          - { varname: 'custom_xtoph_ocp4',       filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4.yml") }}' }
+          - { varname: 'custom_network',          filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4-network.yml") }}' }
+          - { varname: 'custom_ocp',              filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4-ocp.yml") }}' }
+          - { varname: 'custom_bastion',          filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4-bastion.yml") }}' }
+          - { varname: 'custom_rhcos',            filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4-rhcos.yml") }}' }
+          - { varname: 'custom_assets_openshift', filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4-assets-openshift.yml") }}' }
+          - { varname: 'custom_assets_rhcos',     filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4-assets-rhcos.yml") }}' }
+          - { varname: 'custom_assets_matchbox',  filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4-assets-matchbox.yml") }}' }
       
       
       
