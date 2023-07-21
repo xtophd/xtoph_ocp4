@@ -19,6 +19,38 @@
   provisioner:      "{{ workshop_vars.ocp_provisioner     | default('upi')          }}"
   sno:              "{{ workshop_vars.ocp_sno             | default(False)          }}"
 
+"ocp-4.13":
+  admin_user:       "cloud-admin"
+  basedomain:       "--required--"
+  clustername:      "--required--"
+  cluster_fqdn:     "--required--"
+  creds_dir:        "--required--"
+  wildcard:         "apps"
+  wildcard_fqdn:    "--required--"
+  user:             "cloud-user"
+  version:          "4.11"
+  http_proxy:       ""
+  https_proxy:      ""
+  no_proxy:         ""
+  provisioner:      "--required--"
+  sno:              False
+
+"ocp-4.12":
+  admin_user:       "cloud-admin"
+  basedomain:       "--required--"
+  clustername:      "--required--"
+  cluster_fqdn:     "--required--"
+  creds_dir:        "--required--"
+  wildcard:         "apps"
+  wildcard_fqdn:    "--required--"
+  user:             "cloud-user"
+  version:          "4.11"
+  http_proxy:       ""
+  https_proxy:      ""
+  no_proxy:         ""
+  provisioner:      "--required--"
+  sno:              False
+
 "ocp-4.11":
   admin_user:       "cloud-admin"
   basedomain:       "--required--"
