@@ -5,10 +5,12 @@
   run_once: true
   block:
 
-
+      #
+      #    Only configure if assisted_installer is undefined or false
+      #
 
       #
-      # We need some Ansible facts for tasks below
+      #    We need some Ansible facts for tasks below
       #
 
       - setup:
@@ -35,9 +37,9 @@
 
 
 
-      ##
-      ##    PXE->GRUB setup for UEFI based deployments
-      ##
+      #
+      #    PXE->GRUB setup for UEFI based deployments
+      #
     
     
     
@@ -220,6 +222,9 @@
         when: 
           - ansible_facts['services']['firewalld.service']['state'] is defined
           - ansible_facts['services']['firewalld.service']['state'] == 'running'
+
+
+  when: xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
 
 
   vars:

@@ -67,12 +67,14 @@
   when: 
     - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "pxe"
     - xtoph_ocp4.bastion.dhcp_pxe == true
+    - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
 
 - include_tasks: "config-bastion-iso.yml"
   when: 
     - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "iso"
     - xtoph_ocp4.bastion.iso == true
     - xtoph_ocp4.ocp.provisioner == "upi"
+    - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
 
 - include_tasks: "config-bastion-dhcp.yml"
   when: 
@@ -113,11 +115,13 @@
   when: 
     - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "upi"
     - xtoph_ocp4.ocp.provisioner == "upi"
+    - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
 
 - include_tasks: "config-bastion-ocp-ai.yml"
   when: 
     - xtoph_ocp4_subaction is undefined or xtoph_ocp4_subaction == "ai"
     - xtoph_ocp4.ocp.provisioner == "ai"
+    - xtoph_ocp4.bastion.assisted_installer is defined and xtoph_ocp4.bastion.assisted_installer == true
 
 - include_tasks: "config-bastion-ocp-lock.yml"
   when: 

@@ -176,51 +176,54 @@
 
       
       
-      #   
-      #    Download RHCOS assets
-      #   
+      - block:
+
+            #   
+            #    Download RHCOS assets
+            #
+            #       only download if assisted_installer is undefined or false
+            #   
+            
+            #
+            # ** NOTE **
+            #
+            #      'rootfs' and 'bios4k' was introduced in ocp-4.6 and previous releases won't have that asset defined
+            #      so I am including some logic to maintain backwards compatability for a while.  hence
+            #      the default ({}) empty set if rootfs or bios4k are undefined
+            #
       
       
       
-      ##
-      ## ** NOTE **
-      ##
-      ##       'rootfs' and 'bios4k' was introduced in ocp-4.6 and previous releases won't have that asset defined
-      ##       so I am including some logic to maintain backwards compatability for a while.  hence
-      ##       the default ({}) empty set if rootfs or bios4k are undefined
-      ##
+            - name: "xtoph_ocp4 : config-bastion-matchbox : Red Hat CoreOS image stats"
+              stat:
+                path: "/var/lib/matchbox/assets/{{ item }}"
+              with_items:
+                - "{{ xtoph_ocp4.rhcos_assets.initramfs }}"
+                - "{{ xtoph_ocp4.rhcos_assets.kernel    }}"
+                - "{{ xtoph_ocp4.rhcos_assets.bios      }}"
+                - "{{ xtoph_ocp4.rhcos_assets.iso       }}"
+                - "{{ xtoph_ocp4.rhcos_assets.rootfs | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.bios4k | default([]) }}"
+              register: asset_stats
+            
+            - name: "xtoph_ocp4 : config-bastion-matchbox : Red Hat CoreOS image download"
+              environment:
+                http_proxy:  "{{ xtoph_ocp4.ocp.http_proxy }}"
+                https_proxy: "{{ xtoph_ocp4.ocp.https_proxy }}"
+              get_url:
+                url: "{{ xtoph_ocp4.rhcos_assets.url }}/{{ item }}"
+                dest: "/var/lib/matchbox/assets/{{ item }}"
+                owner: matchbox
+                group: matchbox
+                mode: "0644"
+                timeout: 60
+                force: no
+              loop: "{{ asset_stats.results | rejectattr('stat.exists') | map(attribute='item') | list }}"
+              register: coreos_download
+              until: coreos_download is not failed
+              retries: 5
       
-      
-      
-      - name: "xtoph_ocp4 : config-bastion-matchbox : Red Hat CoreOS image stats"
-        stat:
-          path: "/var/lib/matchbox/assets/{{ item }}"
-        with_items:
-          - "{{ xtoph_ocp4.rhcos_assets.initramfs }}"
-          - "{{ xtoph_ocp4.rhcos_assets.kernel    }}"
-          - "{{ xtoph_ocp4.rhcos_assets.bios      }}"
-          - "{{ xtoph_ocp4.rhcos_assets.iso       }}"
-          - "{{ xtoph_ocp4.rhcos_assets.rootfs | default([]) }}"
-          - "{{ xtoph_ocp4.rhcos_assets.bios4k | default([]) }}"
-        register: asset_stats
-      
-      - name: "xtoph_ocp4 : config-bastion-matchbox : Red Hat CoreOS image download"
-        environment:
-          http_proxy:  "{{ xtoph_ocp4.ocp.http_proxy }}"
-          https_proxy: "{{ xtoph_ocp4.ocp.https_proxy }}"
-        get_url:
-          url: "{{ xtoph_ocp4.rhcos_assets.url }}/{{ item }}"
-          dest: "/var/lib/matchbox/assets/{{ item }}"
-          owner: matchbox
-          group: matchbox
-          mode: "0644"
-          timeout: 60
-          force: no
-        loop: "{{ asset_stats.results | rejectattr('stat.exists') | map(attribute='item') | list }}"
-        register: coreos_download
-        until: coreos_download is not failed
-        retries: 5
-      
+        when: xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
       
       
       #   
@@ -264,65 +267,66 @@
 
 
 
-#
-#    Nodes: deploy configuration files for OCP nodes
-#
+      - block:
+      
+            #
+            #    Deploy configuration files for OCP nodes
+            #
 
+            #
+            #       only download if assisted_installer is undefined or false
+            #   
+      
+            - name: "xtoph_ocp4 : config-bastion-matchbox : deploy bootstrap configs"
+              vars:
+                - t_profile:   "bootstrap"
+              template:
+                src:   "{{item.src}}"
+                dest:  "{{item.dest}}"
+                mode:  "644"
+                owner: matchbox
+                group: matchbox
+              with_items:
+                - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
+                - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
+              when: 
+                - inventory_hostname in xtoph_ocp4._cluster_bootstrap
+      
+      
+      
+            - name: "xtoph_ocp4 : config-bastion-matchbox : deploy master configs"
+              vars:
+                - t_profile:   "master"
+              template:
+                src:   "{{item.src}}"
+                dest:  "{{item.dest}}"
+                mode:  "644"
+                owner: matchbox
+                group: matchbox
+              with_items:
+                - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
+                - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
+              when: 
+                - inventory_hostname in xtoph_ocp4._cluster_masters
+           
 
+       
+            - name: "xtoph_ocp4 : config-bastion-matchbox : deploy worker configs"
+              vars:
+                - t_profile:   "worker"
+              template:
+                src:   "{{item.src}}"
+                dest:  "{{item.dest}}"
+                mode:  "644"
+                owner: matchbox
+                group: matchbox
+              with_items:
+                - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
+                - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
+              when: 
+                - inventory_hostname in xtoph_ocp4._cluster_workers
 
-- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
-  block:
-
-
-
-      - name: "xtoph_ocp4 : config-bastion-matchbox : deploy bootstrap configs"
-        vars:
-          - t_profile:   "bootstrap"
-        template:
-          src:   "{{item.src}}"
-          dest:  "{{item.dest}}"
-          mode:  "644"
-          owner: matchbox
-          group: matchbox
-        with_items:
-          - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
-          - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
-        when: 
-          - inventory_hostname in xtoph_ocp4._cluster_bootstrap
-
-
-
-      - name: "xtoph_ocp4 : config-bastion-matchbox : deploy master configs"
-        vars:
-          - t_profile:   "master"
-        template:
-          src:   "{{item.src}}"
-          dest:  "{{item.dest}}"
-          mode:  "644"
-          owner: matchbox
-          group: matchbox
-        with_items:
-          - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
-          - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
-        when: 
-          - inventory_hostname in xtoph_ocp4._cluster_masters
-     
-
- 
-      - name: "xtoph_ocp4 : config-bastion-matchbox : deploy worker configs"
-        vars:
-          - t_profile:   "worker"
-        template:
-          src:   "{{item.src}}"
-          dest:  "{{item.dest}}"
-          mode:  "644"
-          owner: matchbox
-          group: matchbox
-        with_items:
-          - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
-          - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
-        when: 
-          - inventory_hostname in xtoph_ocp4._cluster_workers
+        when: xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
       
 
 
