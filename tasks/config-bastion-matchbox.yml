@@ -267,8 +267,8 @@
 
 
 
-      - block:
-        run_once: false
+      - run_once: false
+        block:
       
             #
             #    Deploy configuration files for OCP nodes

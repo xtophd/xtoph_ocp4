@@ -22,7 +22,7 @@
           port: 22
           sleep: 15
           state: started
-          timeout: 900
+          timeout: 1800
 
 
 
