@@ -20,6 +20,7 @@
           - token_test.stat.exists
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : delete cluster configuration (ignore error if it does not)"
+        delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
