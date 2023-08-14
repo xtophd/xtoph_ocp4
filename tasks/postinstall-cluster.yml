@@ -16,8 +16,8 @@
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                 list hosts | grep {{ inventory_hostname }} | tr '[+\-\|]'  '[  ,]' | sed -e 's| *, *|,|g' -e 's|^,||g' -e 's|,$||g' | cut -d , -f 5
-        register: aicli_status
-        until: aicli_status.stdout == "known" 
+        register: aicli_node_status
+        until: aicli_node_status.stdout == "known" or aicli_node_status.stdout == "installed"
         delay: 5
         retries: 600
        
@@ -26,14 +26,18 @@
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                 update host {{ inventory_hostname }} -P role=worker
-        when: inventory_hostname in xtoph_ocp4._cluster_workers
+        when: 
+          - aicli_node_status.stdout == "known"
+          - inventory_hostname in xtoph_ocp4._cluster_workers
        
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) set node roles"
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                 update host {{ inventory_hostname }} -P role=master
-        when: inventory_hostname_short in xtoph_ocp4._cluster_masters
+        when:
+          - aicli_node_status.stdout == "known"
+          - inventory_hostname_short in xtoph_ocp4._cluster_masters
        
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster ready"
         run_once: true
@@ -41,8 +45,8 @@
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                 info cluster {{ xtoph_ocp4.ocp.clustername }} | grep '^status:' | sed -e 's|^status: ||g'
-        register: aicli_status
-        until: aicli_status.stdout == "ready"
+        register: aicli_cluster_status
+        until: aicli_cluster_status.stdout == "ready" or aicli_cluster_status.stdout == "installed"
         delay: 5
         retries: 600
        
@@ -52,6 +56,7 @@
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                 start cluster {{ xtoph_ocp4.ocp.clustername }}
+        when: aicli_cluster_status.stdout == "ready"
 
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster install preparations to complete"
         run_once: true
@@ -63,6 +68,7 @@
         until: aicli_status.stdout == "100"
         delay: 5
         retries: 600
+        when: aicli_cluster_status.stdout == "ready"
 
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster installation to complete"
         run_once: true
@@ -74,6 +80,7 @@
         until: aicli_status.stdout == "100"
         delay: 5
         retries: 600
+        when: aicli_cluster_status.stdout == "ready"
 
 
 
@@ -161,6 +168,7 @@
           sleep: 5
           state: started
           timeout: 1800
+        when: aicli_cluster_status.stdout == "ready"
 
   when: xtoph_ocp4.ocp.provisioner == "ai"
 
