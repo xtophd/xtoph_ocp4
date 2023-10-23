@@ -1,7 +1,16 @@
 #!/bin/bash
 
-export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+##
+## Include the lib-exercise functions
+##
 
+. $(dirname "$0")/lib-exercise.sh
+
+##
+## Load the kubeconfig
+##
+
+export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
 
 ##
 ## Some solutions used here come from:
@@ -26,42 +35,46 @@ for i in `oc get nodes -o custom-columns="Node Name:.metadata.name" --no-headers
 done
 echo ""
 
+##
+##
+##
 
+exercise_cmd "Check dns operator health" \
+             "oc get clusteroperator dns"
 
-echo "Check dns operator health"
-echo "-------------------------"
-oc get clusteroperator dns
-echo ""
+##
+##
+##
 
+exercise_cmd "Check dns pod health" \
+             "oc get pod -n openshift-dns-operator"
 
-
-echo "Check dns pod health"
-echo "--------------------"
-oc get pod -n openshift-dns-operator  
-echo ""
-
+##
+##
+##
 
 
 ##    Alternative, but too much info for now
-#echo "Check dns pod health"
-#echo "--------------------"
-#oc get all -n openshift-dns-operator  
+#exercise_cmd "Check dns pod health" \
+#             "oc get all -n openshift-dns-operator"
 
+##
+##
+##
 
+exercise_cmd "Check dns service health" \
+             "oc get service -n openshift-dns"
 
-echo "Check dns service health"
-echo "------------------------"
-oc get service -n openshift-dns
-echo ""
+##
+##
+##
 
+exercise_cmd "List dns pod IPs and Node IPs" \
+             "oc get pods -n openshift-dns -o custom-columns='Pod Name:.metadata.name,Pod IP:.status.podIP,Node IP:.status.hostIP,Status:.status.phase'"
 
-
-echo "List dns pod IPs and Node IPs"
-echo "-----------------------------"
-oc get pods -n openshift-dns -o custom-columns="Pod Name:.metadata.name,Pod IP:.status.podIP,Node IP:.status.hostIP,Status:.status.phase"
-echo ""
-
-
+##
+##
+##
 
 echo "Check pods (apiserver): /etc/resolv.conf"
 echo "----------------------------------------"
@@ -73,11 +86,10 @@ for pod in $PODS; do
 done 
 echo ""
 
+##
+##
+##
 
+exercise_cmd  "Display dns operator configmap" \
+              "oc get configmap/dns-default -n openshift-dns -o yaml"
 
-echo "Display dns operator configmap"
-echo "------------------------------"
-
-oc get configmap/dns-default -n openshift-dns -o yaml
-
-echo ""
