@@ -1,3 +1,10 @@
+"4.14":
+  name:        "openshift"
+  version:     "4.14"
+  url:         "https://mirror.openshift.com/pub/openshift-v4/clients/ocp/4.14.5"
+  install_tar: "openshift-install-linux-4.14.5.tar.gz"
+  client_tar:  "openshift-client-linux-4.14.5.tar.gz"
+
 "4.13":
   name:        "openshift"
   version:     "4.13"
