@@ -21,7 +21,7 @@
         delay: 5
         retries: 600
        
-      - name: "xtoph_ocp4 : postinstall-cluster : (AI) set node roles"
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) set node roles for workers"
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
@@ -30,16 +30,16 @@
           - aicli_node_status.stdout == "known"
           - inventory_hostname in xtoph_ocp4._cluster_workers
        
-      - name: "xtoph_ocp4 : postinstall-cluster : (AI) set node roles"
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) set node roles for masters"
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                 update host {{ inventory_hostname }} -P role=master
         when:
           - aicli_node_status.stdout == "known"
-          - inventory_hostname_short in xtoph_ocp4._cluster_masters
+          - inventory_hostname in xtoph_ocp4._cluster_masters
        
-      - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster ready"
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster status == ready | installed"
         run_once: true
         shell:
           cmd: |
