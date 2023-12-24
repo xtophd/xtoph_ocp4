@@ -63,7 +63,7 @@
         register: ssh_status
         ignore_errors: yes
 
-      - name: "xtoph_ocp4 : preunistall-node-shutdown : issue gracefull OCP node shutdown"
+      - name: "xtoph_ocp4 : preunistall-node-shutdown : issue graceful OCP node shutdown"
         delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
         shell:
           cmd: |

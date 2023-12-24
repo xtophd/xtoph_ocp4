@@ -12,7 +12,7 @@ menuentry 'Transfer to CoreOS Installer (EFI)' {
      insmod net
      insmod http
      echo 'Loading Linux ...'
-     set root=http,{{ p_nextsvr }}:{{ p_http_port }}
+     set root=http,{{ t_nextsvr }}:{{ t_http_port }}
      configfile /grub?mac=$net_default_mac
 }
 

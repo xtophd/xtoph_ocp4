@@ -1,8 +1,53 @@
+#
+#    NOTE:
+#
+#    Because this is a complex problem with a lot of complex solutions,
+#    I leave this here as a reminder as to how and why things work.
+#
+#        1) For BIOS based systems I use iPXE syslinux/pxelinux
+#        2) I have chosen to use iPXE to install UEFI enabled systems
+#           for OCP versions 4.3 thru 4.8
+#        3) I have chosen to use native grub2 to install UEFI enabled systems
+#           for OCP versions 4.9 and beyond
+#
+#    At this time, matchbox is serving the binary assets at http-path
+#
+#    Files go into: /var/lib/tftpboot/uefi/rhcso-<VERSION>/*
+#    Files go into: /var/lib/tftpboot/bios/rhcso-<VERSION>/*
+#
+#    For iPXE
+#        first file is ipxe.cfg
+#        second file (chain) is ipxe.cfg-<MAC>
+#        ipxe will load kernel and initrd from http-path
+#        ipxe client is copied from the RHEL host
+#
+#    For grub2
+#        first file is grub.cfg
+#        second file (chain) is grub.cfg-01-<MAC>
+#        grub will load kernel and initrd from http-path
+#        grub client is copied from the RHCOS initird image
+#
+#
+#    OTHER CONSIDERATIONS
+#
+#    iPXE can load a cdrom and boot it directly
+#
+#      If you use ipxe sanboot with an http target, the http 
+#      server needs to support keep-alive and ranged requests.
+#      I don't think matchbox handles that and I could
+#      not get this technique to work.  
+#
+#      if you use initrd to download the image, it must fit in 
+#      memory.  I had limited success with this
+#
+#      In the end, I opted for what I think is the most
+#      consistent approach. Outlined above
+#
 
 
+---
 
 - delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
-  run_once: true
   block:
 
       #
@@ -20,20 +65,54 @@
     
       - debug:
           msg: "Ansible Facts: {{ ansible_distribution }} {{ ansible_distribution_major_version  }}"
-
-
-      
+ 
       - name: "xtoph_ocp4 : config-bastion-pxe : package installation"
+        run_once: true
         yum: name=tftp-server,ipxe-bootimgs,syslinux-tftpboot,yum-utils,xorriso state=installed
     
       - name: "xtoph_ocp4 : config-bastion-pxe : create tftpboot directories"
+        run_once: true
         file:
           path: "{{ item }}"
           mode: "0755"
           state: directory
         with_items:
-          - "/var/lib/tftpboot/pxelinux"
-          - "/var/lib/tftpboot/efi"
+          - "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}"
+          - "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}"
+          - "/etc/systemd/system/tftp.service.d"
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : deploy tftp.service override config"
+        template:
+          src: "tftp-systemd-overrides.j2"
+          dest: "/etc/systemd/system/tftp.service.d/overrides.conf"
+          owner: root
+          group: root
+          mode: 644
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) copy ipxe client from RHEL to tftpboot"
+        run_once: true
+        copy: 
+          src:   "/usr/share/ipxe/{{ item }}"
+          dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/{{ item }}"
+          mode:  "0644"
+          owner: root
+          group: root
+          remote_src: yes
+        with_items:
+          - "ipxe-x86_64.efi"
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : (BIOS) copy ipxe client from RHEL to tftpboot"
+        run_once: true
+        copy: 
+          src:   "{{ item }}"
+          dest:  "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}/"
+          mode:  "0644"
+          owner: root
+          group: root
+          remote_src: yes
+        with_items:
+      #    - "/usr/share/ipxe/undionly.kpxe"
+          - "/usr/share/ipxe/ipxe.lkrn"
 
 
 
@@ -43,143 +122,141 @@
     
     
     
-      - name: "xtoph_ocp4 : config-bastion-pxe : clean-up efi directory /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi"
+      - name: "xtoph_ocp4 : config-bastion-pxe : clean-up workspace /var/tmp/{{ xtoph_ocp4.ocp.clustername }}"
+        run_once: true
         shell:
           cmd: |
-            if [[ -d "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi" ]] ; then rm -rf /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi ; fi
+            if [[ -d "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}" ]] ; then rm -rf /var/tmp/{{ xtoph_ocp4.ocp.clustername }} ; fi
     
-      - name: "xtoph_ocp4 : config-bastion-pxe : create fresh efi work directory"
+      - name: "xtoph_ocp4 : config-bastion-pxe : create fresh uefi and bios workspace"
+        run_once: true
         file:
-          path="/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi"
+          path="/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/{{ item }}"
           mode="0755"
           state=directory
+        with_items:
+          - "bios"
+          - "uefi"
+          - "iso"
     
-      - name: "xtoph_ocp4 : config-bastion-pxe : create target efi directory"
-        file:
-          path="/var/lib/tftpboot/efi"
-          mode="0755"
-          state=directory
-
-
-
-
-      - name: "xtoph_ocp4 : config-bastion-pxe : NEW clone ISO source to temp workspace"
+      - name: "xtoph_ocp4 : config-bastion-pxe : clone ISO source to temp workspace"
         run_once: true
         shell:
           cmd: |
             xorriso -osirrox on -indev "{{ t_src_iso }}" -extract / "{{ t_tmp_subdir }}"
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : NEW mount efiboot.img"
+      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) mount efiboot.img"
         run_once: true
         shell:
           cmd: |
             mount -o ro "{{ t_tmp_subdir }}/images/efiboot.img" /mnt
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : NEW stat if ISO uses BOOTX64.efi"
+      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) stat efi files in image"
+        run_once: true
         stat:
-          path: "/mnt/EFI/BOOT/BOOTX64.efi"
-        register: test_BOOTX64
+          path: "/mnt/EFI/BOOT/{{ item }}"
+        loop:
+          - "BOOTX64.efi"
+          - "shimx64.efi"
+          - "grubx64.efi"
+          - "fbx64.efi"
+        register: test_pxefiles
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : NEW extract efi files to tftpboot"
+      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) copy efi files to tftpboot"
+        run_once: true
         copy: 
-          src:   "{{ item.src }}"
-          dest:  "{{ item.dest }}"
+          src:   "/mnt/EFI/BOOT/{{ item }}"
+          dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/{{ item }}"
           mode:  "0644"
           owner: root
           group: root
           remote_src: yes
-        with_items:
-          - {src: '/mnt/EFI/BOOT/BOOTX64.efi', dest: '/var/lib/tftpboot/efi/shimx64.efi'}
-          - {src: '/mnt/EFI/BOOT/grubx64.efi', dest: '/var/lib/tftpboot/efi/grubx64.efi'}
-        when: test_BOOTX64.stat.exists == true
+        loop: "{{ test_pxefiles.results | selectattr('stat.exists') | map(attribute='item') | list }}"
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : NEW extract (older shimx64) efi files to tftpboot"
-        copy: 
-          src:   "{{ item.src }}"
-          dest:  "{{ item.dest }}"
-          mode:  "0644"
-          owner: root
-          group: root
-          remote_src: yes
-        with_items:
-          - {src: '/mnt/EFI/BOOT/shimx64.efi', dest: '/var/lib/tftpboot/efi/shimx64.efi'}
-          - {src: '/mnt/EFI/BOOT/grubx64.efi', dest: '/var/lib/tftpboot/efi/grubx64.efi'}
-        when: test_BOOTX64.stat.exists == false
-
-      - name: "xtoph_ocp4 : config-bastion-pxe : NEW unmount efiboot.img"
+      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) unmount efiboot.img"
         run_once: true
         shell:
           cmd: |
             umount /mnt
 
 
+      #
+      #    How-To create machine specific configuration file
+      #
+      #    NOTE:
+      #
+      #        PXELINUX (BIOS)
+      #          pxelinux.0 looks for config files in
+      #          a specific order. See link for details
+      #
+      #
+      #          We use: ../pxelinux.cfg/01-{{ MAC-ADDRESS }}
+      #
+      #                  "{{ h_pubMAC | replace(':','-') }}"
+      #
+      #        GRUB (UEFI)
+      #          the efi grubx64.efi/shim64.efi also uses similar mechanism
+      #          looking for: ../grub.cfg-01-aa-bb-cc-dd-ee-ff
+      #
+      #          Alternative could be a HEX version of the IP,
+      #          Note that ip4_hex requires python-netaddr package
+      #
+      #                  "{{ xtoph_deploy.machine_profile.network.default.ip | ip4_hex | upper }}"
+      #
+      #    REFERENCE:
+      #               https://wiki.syslinux.org/wiki/index.php?title=PXELINUX
+      #
+      #
 
-      # 2021-07-14: Replaced with shell command below
-      #- name: "xtoph_ocp4 : config-bastion-pxe : download rpms (do not install) for efi artifacts"
-      #  yum: 
-      #    name: shim-x64,grub2-efi-x64
-      #    state: latest
-      #    download_dir: "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi"
-      #    download_only: yes 
-    
-      #    NOTE:  RHEL 8.4 installs shim & grub2 packages as part of @BASE
-      #           causing ansible yum module to fail downloading the rpms on a 
-      #           clean build, reverted to using shell
-
-
-#      - name: "common-dhcp-setup : download rpms (do not install) for efi artifacts"
-#        shell:
-#          cmd: |
-#            cd /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi;  yumdownloader {{ item }}
-#        with_items:
-#          - "shim-x64"
-#          - "grub2-efi-x64"
-#    
-#      - name: "xtoph_ocp4 : config-bastion-pxe : unpack contents of rpms for efi artifacts"
-#        shell:
-#          cmd: |
-#            cd /var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi; rpm2cpio {{ item }}*.rpm | cpio -dimv
-#        with_items:
-#          - "shim-x64"
-#          - "grub2-efi"
-#    
-#      - name: "xtoph_ocp4 : config-bastion-pxe : copy efi files to tftpboot (Red Hat)"
-#        copy: 
-#          src:   "{{ item }}"
-#          dest:  "/var/lib/tftpboot/efi"
-#          mode:  "0644"
-#          owner: root
-#          group: root
-#          remote_src: yes
-#        with_items:
-#          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/redhat/shimx64.efi"
-#          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/redhat/grubx64.efi"
-#        when:
-#          - ansible_distribution == "RedHat"
-#
-#      - name: "xtoph_ocp4 : config-bastion-pxe : copy efi files to tftpboot (CentOS)"
-#        copy: 
-#          src:   "{{ item }}"
-#          dest:  "/var/lib/tftpboot/efi"
-#          mode:  "0644"
-#          owner: root
-#          group: root
-#          remote_src: yes
-#        with_items:
-#          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/centos/shimx64.efi"
-#          - "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/efi/boot/efi/EFI/centos/grubx64.efi"
-#        when:
-#          - ansible_distribution == "CentOS"
+      #
+      #    NOTE:
+      #
+      #
+      #
+      #
+      #
 
 
-
-      - name: "xtoph_ocp4 : config-bastion-pxe : deploy grub.cfg in tftpboot directory"
+      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) default grub.cfg when OCP >= 4.9"
+        run_once: true
         vars:
           - p_nextsvr:   "{{ xtoph_ocp4.bastion.host_ip }}"
           - p_http_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
         template:
-          src:   "pxe-grub-config.j2"
-          dest:  "/var/lib/tftpboot/efi/grub.cfg"
+          src:   "pxe-uefi-grub-default.j2"
+          dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/grub.cfg"
+          mode:  "0644"
+          owner: root
+          group: root
+        when:
+          - xtoph_ocp4.ocp.version is version('4.9',operator='>=')
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) machine specific grub.cfg when OCP >= 4.9"
+        template:
+          src:   "pxe-uefi-grub-machine.j2"
+          dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/grub.cfg-01-{{ t_dash_mac }}"
+          mode:  "0644"
+          owner: root
+          group: root
+        when:
+          - xtoph_ocp4.ocp.version is version('4.9',operator='>=')
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) default ipxe.cfg"
+        run_once: true
+        vars:
+          - p_nextsvr:   "{{ xtoph_ocp4.bastion.host_ip }}"
+          - p_http_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
+        template:
+          src:   "pxe-uefi-ipxe-default.j2"
+          dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg"
+          mode:  "0644"
+          owner: root
+          group: root
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) machine specific ipxe.cfg"
+        template:
+          src:   "pxe-uefi-ipxe-machine.j2"
+          dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg-{{ t_dash_mac }}"
           mode:  "0644"
           owner: root
           group: root
@@ -191,25 +268,42 @@
       ##
 
 
-
-      - name: "xtoph_ocp4 : config-bastion-pxe : copy ipxe files to tftpboot"
-        copy: 
-          src:   "{{ item }}"
-          dest:  "/var/lib/tftpboot"
+      - name: "xtoph_ocp4 : config-bastion-pxe : (BIOS) default ipxe.cfg"
+        run_once: true
+        vars:
+          - p_nextsvr:   "{{ xtoph_ocp4.bastion.host_ip }}"
+          - p_http_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
+        template:
+          src:   "pxe-uefi-ipxe-default.j2"
+          dest:  "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg"
           mode:  "0644"
           owner: root
           group: root
-          remote_src: yes
-        with_items:
-          - "/usr/share/ipxe/undionly.kpxe"
-          - "/usr/share/ipxe/ipxe.lkrn"
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : restart services"
-        service: name={{ item }} state=restarted enabled=yes masked=no
-        with_items:
-          - "tftp"
+      - name: "xtoph_ocp4 : config-bastion-pxe : (BIOS) machine specific ipxe.cfg"
+        template:
+          src:   "pxe-uefi-ipxe-machine.j2"
+          dest:  "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg-{{ t_dash_mac }}"
+          mode:  "0644"
+          owner: root
+          group: root
+
+
+      ##
+      ##
+      ##
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : service restart tftp"
+        run_once: true
+        service:
+           name: tftp
+           state: restarted
+           enabled: yes
+           masked: no
+           daemon_reload: yes
 
       - name: "xtoph_ocp4 : config-bastion-pxe : add firewalld services"
+        run_once: true
         firewalld:
           service: "{{ item }}"
           immediate: yes
@@ -228,17 +322,25 @@
 
 
   vars:
-    - t_tmp:         "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/iso"
-    - t_tmp_subdir:  "{{ t_tmp }}/{{ inventory_hostname_short }}"
+    - t_tmp:         "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}"
+    - t_tmp_subdir:  "{{ t_tmp }}/iso"
     - t_name:        "{{ inventory_hostname_short }}"
+    - t_nextsvr:     "{{ xtoph_ocp4.bastion.host_ip }}"
+    - t_mac:         "{{ xtoph_ocp4.rhcos.nic_mac | lower }}"
+    - t_dash_mac:    "{{ xtoph_ocp4.rhcos.nic_mac | lower | replace(':','-') }}"
     - t_addr:        "{{ xtoph_ocp4.bastion.host_ip }}"
     - t_port:        "{{ xtoph_ocp4.bastion.matchbox_port }}"
     - t_clustername: "{{ xtoph_ocp4.ocp.clustername }}"
     - t_bond:        "{{ xtoph_ocp4.rhcos.bond_dev }}"
-    - t_mac:         "{{ xtoph_ocp4.rhcos.nic_mac }}"
     - t_network:     "{{ xtoph_ocp4.rhcos.nic_dev }}"
     - t_storage:     "{{ xtoph_ocp4.rhcos.blk_dev }}"
     - t_usbdelay:    "{{ xtoph_ocp4.rhcos.usb_delay }}"
+    - t_loader:      "{{ xtoph_ocp4.rhcos.bootloader }}"
+    - t_bios:        "{{ xtoph_ocp4.rhcos_assets.bios }}"
+    - t_initramfs:   "{{ xtoph_ocp4.rhcos_assets.initramfs }}"
+    - t_kernel:      "{{ xtoph_ocp4.rhcos_assets.kernel }}"
+    - t_rootfs:      "{{ xtoph_ocp4.rhcos_assets.rootfs | default('') }}"
+    - t_image:       "{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
     - t_src_iso:     "/var/lib/matchbox/assets/{{ xtoph_ocp4.rhcos_assets.iso }}"
     - t_dest_iso:    "/var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
 

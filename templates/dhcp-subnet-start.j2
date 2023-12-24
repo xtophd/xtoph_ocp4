@@ -21,30 +21,51 @@ subnet {{ p_network }} netmask {{ p_netmask }} {
 
     match if substring (option vendor-class-identifier, 0, 9) = "PXEClient";
 
-    log (info, "dhcpd-debug: CLIENT IDENTIFIER: PXEClient");
+    log (info, "dhcpd-debug: VENDOR CLASS IDENTIFIER: PXEClient");
 
     next-server {{ p_nextsvr }};
 
     if exists user-class and option user-class = "iPXE" {
 
       log (info, "dhcpd-debug: CLIENT USER-CLASS: iPXE");
-      log (info, "dhcpd-debug: CLIENT FILENAME: http://{{ p_nextsvr }}:{{ p_http_port }}/boot.ipxe");
-      filename "http://{{ p_nextsvr }}:{{ p_http_port }}/boot.ipxe";
 
-    } elsif option client-system-arch = 00:06 {
+      if option client-system-arch = 00:06 or client-system-arch = 00:07 or option client-system-arch = 00:09 { 
 
-      log (info, "dhcpd-debug: CLIENT FILENAME: ipxe-i386.efi");
-      filename "ipxe-i386.efi";
+        log (info, "dhcpd-debug: CLIENT SYSTEM ARCH: EFI (00:06|00:07|00:09)");
+        log (info, "dhcpd-debug: CLIENT FILENAME: {{ uefi_path }}/ipxe.cfg");
+        filename "{{ uefi_path }}/ipxe.cfg";
 
-    } elsif option client-system-arch = 00:07 or option client-system-arch = 00:09 {
+      } else {
 
-      log (info, "dhcpd-debug: CLIENT FILENAME: shimx64.efi");
-      filename "/efi/shimx64.efi";
+        log (info, "dhcpd-debug: CLIENT SYSTEM ARCH: BIOS x86-64 (default)");
+        log (info, "dhcpd-debug: CLIENT FILENAME: {{ bios_path }}/ipxe.cfg");
+        filename "{{ bios_path }}/ipxe.cfg";
+
+      }
 
     } else {
 
-      log (info, "dhcpd-debug: CLIENT FILENAME: undionly.kpxe");
-      filename "undionly.kpxe";
+      log (info, "dhcpd-debug: CLIENT USER-CLASS: is not iPXE");
+
+      if option client-system-arch = 00:06 {
+
+        log (info, "dhcpd-debug: CLIENT SYSTEM ARCH: EFI IA32 (00:06)");
+        log (info, "dhcpd-debug: CLIENT FILENAME: ipxe-i386.efi");
+        filename "ipxe-i386.efi";
+
+      } elsif option client-system-arch = 00:07 or option client-system-arch = 00:09 {
+
+        log (info, "dhcpd-debug: CLIENT SYSTEM ARCH: EFI BC or x86-64 (00:07|00:09)");
+        log (info, "dhcpd-debug: CLIENT FILENAME: {{ uefi_path }}/{{ pxe_client_uefi }}");
+        filename "{{ uefi_path }}/{{ pxe_client_uefi }}";
+
+      } else {
+
+        log (info, "dhcpd-debug: CLIENT SYSTEM ARCH: BIOS x86-64 (default)");
+        log (info, "dhcpd-debug: CLIENT FILENAME: {{ bios_path }}/{{ pxe_client_bios }}");
+        filename "{{ bios_path }}/{{ pxe_client_bios }}";
+
+      }
     }
   }
 {% endif %}

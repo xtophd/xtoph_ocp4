@@ -1,15 +1,37 @@
 
 
+  #    
+  #
+  #    NOTE:  these values are used in dhcpd.conf
+  #
+  #        PXE Client System Architecture Types
+  #        Type   Architecture Name
+  #        ----   -----------------
+  #          0    Intel x86PC
+  #          1    NEC/PC98
+  #          2    EFI Itanium
+  #          3    DEC Alpha
+  #          4    Arc x86
+  #          5    Intel Lean Client
+  #          6    EFI IA32
+  #          7    EFI BC
+  #          8    EFI Xscale
+  #          9    EFI x86-64
+  #
+  #    REFERENCE:
+  #
+  #        https://www.rfc-editor.org/rfc/rfc4578#section-2.1
+  #
+
 
 - delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
-  run_once: true
   block:
 
 
+      #
+      #    We need some Ansible facts for tasks below
+      #
 
-      #
-      # We need some Ansible facts for tasks below
-      #
 
       - setup:
 
@@ -19,29 +41,118 @@
       - debug:
           msg: "Ansible Facts: {{ ansible_distribution }} {{ ansible_distribution_major_version  }}"
         when: xtoph_ocp4._debug
+
  
+      #
+      #    Based on distribution, install pkgs and clean up workspaces
+      #
+
+
       - name: "xtoph_ocp4 : config-bastion-dhcp : package installation (RHEL8)"
+        run_once: true
         yum: name=dhcp-server state=installed
         when:
           - ansible_distribution == "RedHat"
           - ansible_distribution_major_version == "8"
       
       - name: "xtoph_ocp4 : config-bastion-dhcp : package installation (RHEL7)"
+        run_once: true
         yum: name=dhcp state=installed
         when:
           - ansible_distribution == "RedHat" or ansible_distribution == "CentOS"
           - ansible_distribution_major_version == "7"
     
       - name: "xtoph_ocp4 : config-bastion-dhcp : clean cfg fragments directory"
+        run_once: true
         shell:
           cmd: |
             if [[ -d "/etc/dhcp/cfg-fragments" ]] ; then rm -rf /etc/dhcp/cfg-fragments ; fi
 
       - name: "xtoph_ocp4 : config-bastion-dhcp : create cfg fragments directory"
+        run_once: true
         file:
           path: /etc/dhcp/cfg-fragments
           mode: "0755"
           state: directory
+
+
+
+      #
+      #    Identify uefi-pxe client 
+      #
+      #    NOTE:
+      #
+      #        Starting with OCP 4.9, we can boot directly into grub without the
+      #        need to hop through iPXE first.
+      #
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : (UEFI) stat pxe clients in tftpboot directory"
+        stat:
+          path: "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/{{ item }}"
+        loop:
+          - "BOOTX64.efi"
+          - "shimx64.efi"
+        register: test_uefi_files
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : (UEFI) determine pxe client (OCP >= 4.9)"
+        set_fact:
+          uefi_path:        "/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}"
+          pxe_client_uefi:  "{{ item }}"
+        with_items:
+          - "{{ test_uefi_files.results | selectattr('stat.exists') | map(attribute='item') | list | first }}"
+        when:
+          - xtoph_ocp4.ocp.version is version('4.9',operator='>=')
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : (UEFI) determine uefi pxe client (OCP < 4.9)"
+        set_fact:
+          uefi_path:        "/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}"
+          pxe_client_uefi:  "ipxe-x86_64.efi"
+        when:
+          - xtoph_ocp4.ocp.version is version('4.9',operator='<')
+
+      - debug:
+          msg: 
+            - "UEFI PXE CLIENT: {{ pxe_client_uefi }}"
+            - "UEFI PATH: {{ uefi_path }}"
+        when: xtoph_ocp4._debug
+
+
+      #
+      #    Identify bios-pxe client  and config
+      #
+      #    NOTE:
+      #
+      #        Starting with OCP 4.9, we can boot directly into grub without the
+      #        need to hop through iPXE first.
+      #
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : (BIOS) stat pxe clients in tftpboot directory"
+        stat:
+          path: "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}/{{ item }}"
+        loop:
+          - "ipxe.lkrn"
+          - "undionly.kpxe"
+        register: test_bios_files
+
+      - name: "xtoph_ocp4 : config-bastion-dhcp : (BIOS) determine pxe client"
+        set_fact:
+          bios_path:  "/bios/rhcos-{{ xtoph_ocp4.ocp.version }}"
+          pxe_client_bios:  "{{ item }}"
+        with_items:
+          - "{{ test_bios_files.results | selectattr('stat.exists') | map(attribute='item') | list | first }}"
+
+      - debug:
+          msg: 
+            - "BIOS PXE CLIENT: {{ pxe_client_bios }}"
+            - "BIOS PATH: {{ bios_path }}"
+        when: xtoph_ocp4._debug
+
+
+
+      #
+      #    Generate the DHCP config fragments
+      #
+
 
       - name: "xtoph_ocp4 : config-bastion-dhcp : deploy CLUSTER host config framents"
         run_once: false 
@@ -73,12 +184,19 @@
                                       xtoph_ocp4._cluster_bastion
 
       - name: "xtoph_ocp4 : config-bastion-dhcp : deploy standard options"
+        run_once: true
         template:
           src: "dhcp-standard-opts.j2"
           dest: "/etc/dhcp/cfg-fragments/10-standard-opts.conf"
           owner: root
 
       - name: "xtoph_ocp4 : config-bastion-dhcp : deploy subnet-start config frament"
+        run_once: true
+        vars:
+          - p_pxe_uefi_client: "{{ pxe_uefi_client }}"
+          - p_pxe_uefi_cfg:    "{{ pxe_uefi_cfg }}"
+          - p_pxe_bios_client: "{{ pxe_bios_client }}"
+          - p_pxe_bios_cfg:    "{{ pxe_bios_cfg }}"
         template:
           src: "dhcp-subnet-start.j2"
           dest: "/etc/dhcp/cfg-fragments/20-subnet-start.conf"
@@ -87,18 +205,21 @@
           mode: 644
 
       - name: "xtoph_ocp4 : config-bastion-dhcp : deploy dhcp group start"
+        run_once: true
         template:
           src: "dhcp-group-start.j2"
           dest: "/etc/dhcp/cfg-fragments/30-group-start.conf"
           owner: root
 
       - name: "xtoph_ocp4 : config-bastion-dhcp : deploy dhcp group finish"
+        run_once: true
         template:
           src: "dhcp-group-finish.j2"
           dest: "/etc/dhcp/cfg-fragments/50-group-finish.conf"
           owner: root
 
       - name: "xtoph_ocp4 : config-bastion-dhcp : deploy subnet-finish config frament"
+        run_once: true
         template:
           src: "dhcp-subnet-finish.j2"
           dest: "/etc/dhcp/cfg-fragments/60-subnet-finish.conf"
@@ -107,6 +228,7 @@
           mode: 644
 
       - name: "xtoph_ocp4 : config-bastion-dhcp : assemble config fragments"
+        run_once: true
         assemble:
           src: "/etc/dhcp/cfg-fragments"
           dest: "/etc/dhcp/dhcpd.conf"
@@ -115,11 +237,13 @@
           mode: 644
     
       - name: "xtoph_ocp4 : config-bastion-dhcp : restart services"
+        run_once: true
         service: name={{ item }} state=restarted enabled=yes masked=no
         with_items:
           - "dhcpd"
     
       - name: "xtoph_ocp4 : config-bastion-dhcp : add firewalld ports and services"
+        run_once: true
         firewalld:
           service: "{{ item }}"
           immediate: yes

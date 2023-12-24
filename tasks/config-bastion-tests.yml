@@ -4,9 +4,8 @@
 - delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
   block:
 
- 
 
-      - name: "xtoph_ocp4 : config-bastion--tests : test fqdn lookup of all nodes"
+      - name: "xtoph_ocp4 : config-bastion-tests : test fqdn lookup of all nodes"
         vars: 
           - p_server:  "localhost"
           - p_name:    "{{ inventory_hostname }}"
@@ -23,7 +22,7 @@
 
 
 
-      - name: "xtoph_ocp4 : config-bastion--tests : test wildcard"
+      - name: "xtoph_ocp4 : config-bastion-tests : test wildcard"
         run_once: true
         vars: 
           - p_server:  "localhost"
@@ -38,7 +37,7 @@
 
 
 
-      - name: "xtoph_ocp4 : config-bastion--tests : test api"
+      - name: "xtoph_ocp4 : config-bastion-tests : test api"
         run_once: true
         vars: 
           - p_server:  "localhost"
@@ -53,7 +52,7 @@
 
 
 
-      - name: "xtoph_ocp4 : config-bastion--tests : test api-int"
+      - name: "xtoph_ocp4 : config-bastion-tests : test api-int"
         run_once: true
         vars: 
           - p_server:  "localhost"
@@ -68,7 +67,7 @@
 
 
 
-      - name: "xtoph_ocp4 : config-bastion--tests : test quay.io"
+      - name: "xtoph_ocp4 : config-bastion-tests : test quay.io"
         run_once: true
         vars: 
           - p_server:  "localhost"
