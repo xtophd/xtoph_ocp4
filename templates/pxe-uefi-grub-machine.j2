@@ -13,6 +13,7 @@ menuentry 'Install Red Hat CoreOS {{ xtoph_ocp4.ocp.version }} [{{ t_name }}]' {
 
     echo "Loading kernel"
     linuxefi (http,{{ t_addr}}:{{ t_port }})/assets/{{ t_kernel }} \
+             nomodeset \
              ip={{ t_network }} \
 {% if t_bond != "" %}
              bond={{ t_bond }} \
@@ -37,10 +38,10 @@ menuentry 'Install Red Hat CoreOS {{ xtoph_ocp4.ocp.version }} [{{ t_name }}]' {
 
 
 
-menuentry 'Retry config grub.cfg-01-{{ t_dash_mac }}' {
+menuentry 'Reload config {{ t_tftp_cfgpath }} [{{ t_name }}]' {
     insmod net
     insmod http
     echo 'Loading Linux ...'
-    configfile efi/grub.cfg-01-{{ t_dash_mac }}
+    configfile {{ t_tftp_cfgpath }}
 }
 

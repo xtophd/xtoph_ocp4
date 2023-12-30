@@ -232,6 +232,8 @@
           - xtoph_ocp4.ocp.version is version('4.9',operator='>=')
 
       - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) machine specific grub.cfg when OCP >= 4.9"
+        vars:
+          t_tftp_cfgpath: "/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/grub.cfg-01-{{ t_dash_mac }}"
         template:
           src:   "pxe-uefi-grub-machine.j2"
           dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/grub.cfg-01-{{ t_dash_mac }}"
