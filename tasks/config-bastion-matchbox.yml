@@ -189,7 +189,7 @@
             #
             #      'rootfs' and 'bios4k' was introduced in ocp-4.6 and previous releases won't have that asset defined
             #      so I am including some logic to maintain backwards compatability for a while.  hence
-            #      the default ({}) empty set if rootfs or bios4k are undefined
+            #      the default ({}) empty set if rootfs,uefi,metal,metal4k are undefined
             #
       
       
@@ -202,8 +202,11 @@
                 - "{{ xtoph_ocp4.rhcos_assets.kernel    }}"
                 - "{{ xtoph_ocp4.rhcos_assets.bios      }}"
                 - "{{ xtoph_ocp4.rhcos_assets.iso       }}"
-                - "{{ xtoph_ocp4.rhcos_assets.rootfs | default([]) }}"
-                - "{{ xtoph_ocp4.rhcos_assets.bios4k | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.bios    | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.uefi    | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.metal   | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.metal4k | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.rootfs  | default([]) }}"
               register: asset_stats
             
             - name: "xtoph_ocp4 : config-bastion-matchbox : Red Hat CoreOS image download"
@@ -341,10 +344,13 @@
     - t_storage:   "{{ xtoph_ocp4.rhcos.blk_dev }}"
     - t_usbdelay:  "{{ xtoph_ocp4.rhcos.usb_delay }}"
     - t_loader:    "{{ xtoph_ocp4.rhcos.bootloader }}"
-    - t_bios:      "{{ xtoph_ocp4.rhcos_assets.bios }}"
+    - t_bios:      "{{ xtoph_ocp4.rhcos_assets.bios    | default('') }}"
+    - t_uefi:      "{{ xtoph_ocp4.rhcos_assets.uefi    | default('') }}"
+    - t_metal:     "{{ xtoph_ocp4.rhcos_assets.metal   | default('') }}"
+    - t_metal4k:   "{{ xtoph_ocp4.rhcos_assets.metal4k | default('') }}"
     - t_initramfs: "{{ xtoph_ocp4.rhcos_assets.initramfs }}"
     - t_kernel:    "{{ xtoph_ocp4.rhcos_assets.kernel }}"
-    - t_rootfs:    "{{ xtoph_ocp4.rhcos_assets.rootfs | default('') }}"
+    - t_rootfs:    "{{ xtoph_ocp4.rhcos_assets.rootfs  | default('') }}"
 
 
 

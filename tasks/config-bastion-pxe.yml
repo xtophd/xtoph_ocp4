@@ -81,7 +81,7 @@
           - "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}"
           - "/etc/systemd/system/tftp.service.d"
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : deploy tftp.service override config"
+      - name: "xtoph_ocp4 : config-bastion-pxe : deploy tftp.service override config to enable debug messaging"
         template:
           src: "tftp-systemd-overrides.j2"
           dest: "/etc/systemd/system/tftp.service.d/overrides.conf"
@@ -276,7 +276,7 @@
           - p_nextsvr:   "{{ xtoph_ocp4.bastion.host_ip }}"
           - p_http_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
         template:
-          src:   "pxe-uefi-ipxe-default.j2"
+          src:   "pxe-bios-ipxe-default.j2"
           dest:  "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg"
           mode:  "0644"
           owner: root
@@ -284,7 +284,7 @@
 
       - name: "xtoph_ocp4 : config-bastion-pxe : (BIOS) machine specific ipxe.cfg"
         template:
-          src:   "pxe-uefi-ipxe-machine.j2"
+          src:   "pxe-bios-ipxe-machine.j2"
           dest:  "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg-{{ t_dash_mac }}"
           mode:  "0644"
           owner: root
@@ -338,7 +338,10 @@
     - t_storage:     "{{ xtoph_ocp4.rhcos.blk_dev }}"
     - t_usbdelay:    "{{ xtoph_ocp4.rhcos.usb_delay }}"
     - t_loader:      "{{ xtoph_ocp4.rhcos.bootloader }}"
-    - t_bios:        "{{ xtoph_ocp4.rhcos_assets.bios }}"
+    - t_bios:        "{{ xtoph_ocp4.rhcos_assets.bios    | default('') }}"
+    - t_uefi:        "{{ xtoph_ocp4.rhcos_assets.uefi    | default('') }}"
+    - t_metal:       "{{ xtoph_ocp4.rhcos_assets.metal   | default('') }}"
+    - t_metal4k:     "{{ xtoph_ocp4.rhcos_assets.metal4k | default('') }}"
     - t_initramfs:   "{{ xtoph_ocp4.rhcos_assets.initramfs }}"
     - t_kernel:      "{{ xtoph_ocp4.rhcos_assets.kernel }}"
     - t_rootfs:      "{{ xtoph_ocp4.rhcos_assets.rootfs | default('') }}"

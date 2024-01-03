@@ -14,6 +14,10 @@ subnet {{ p_network }} netmask {{ p_netmask }} {
        log (info, concat ("dhcpd-debug: CLIENT HOSTNAME: ", host-decl-name ));
        log (info, concat ("dhcpd-debug: CLIENT IP: ",       binary-to-ascii (10, 8, ".", leased-address)));
        log (info, concat ("dhcpd-debug: CLIENT MAC: ",      binary-to-ascii (16, 8, ":", substring (hardware, 1, 6))));
+       log (info, concat ("dhcpd-debug: CLIENT ARCH: ",     binary-to-ascii (16, 8, ":", option client-system-arch)));
+       log (info, concat ("dhcpd-debug: VENDER CLASS ID: ", option vendor-class-identifier ));
+       log (info, concat ("dhcpd-debug: USER CLASS: ",      option user-class ));
+
     }
 
 {% if xtoph_ocp4.bastion.dhcp_pxe == true %}
@@ -21,48 +25,46 @@ subnet {{ p_network }} netmask {{ p_netmask }} {
 
     match if substring (option vendor-class-identifier, 0, 9) = "PXEClient";
 
-    log (info, "dhcpd-debug: VENDOR CLASS IDENTIFIER: PXEClient");
+    log (info, "dhcpd-debug: eval vendor-class-identifier == PXEClient is TRUE");
 
     next-server {{ p_nextsvr }};
 
     if exists user-class and option user-class = "iPXE" {
 
-      log (info, "dhcpd-debug: CLIENT USER-CLASS: iPXE");
+      log (info, "dhcpd-debug: eval user-class == iPXE is TRUE");
 
-      if option client-system-arch = 00:06 or client-system-arch = 00:07 or option client-system-arch = 00:09 { 
+      if option client-system-arch = 00:07 or option client-system-arch = 00:09 { 
 
-        log (info, "dhcpd-debug: CLIENT SYSTEM ARCH: EFI (00:06|00:07|00:09)");
+        log (info, "dhcpd-debug: eval client-system-arch is 64bit EFI x86 is TRUE");
         log (info, "dhcpd-debug: CLIENT FILENAME: {{ uefi_path }}/ipxe.cfg");
+
         filename "{{ uefi_path }}/ipxe.cfg";
 
       } else {
 
-        log (info, "dhcpd-debug: CLIENT SYSTEM ARCH: BIOS x86-64 (default)");
+        log (info, "dhcpd-debug: eval client-system-arch defaults to 64bit BIOS x86");
         log (info, "dhcpd-debug: CLIENT FILENAME: {{ bios_path }}/ipxe.cfg");
+
         filename "{{ bios_path }}/ipxe.cfg";
 
       }
 
     } else {
 
-      log (info, "dhcpd-debug: CLIENT USER-CLASS: is not iPXE");
+      log (info, "dhcpd-debug: eval user-class == iPXE is FALSE");
 
-      if option client-system-arch = 00:06 {
+      if option client-system-arch = 00:07 or option client-system-arch = 00:09 {
 
-        log (info, "dhcpd-debug: CLIENT SYSTEM ARCH: EFI IA32 (00:06)");
-        log (info, "dhcpd-debug: CLIENT FILENAME: ipxe-i386.efi");
-        filename "ipxe-i386.efi";
-
-      } elsif option client-system-arch = 00:07 or option client-system-arch = 00:09 {
-
-        log (info, "dhcpd-debug: CLIENT SYSTEM ARCH: EFI BC or x86-64 (00:07|00:09)");
+        log (info, "dhcpd-debug: eval client-system-arch is 64bit EFI x86 is TRUE");
         log (info, "dhcpd-debug: CLIENT FILENAME: {{ uefi_path }}/{{ pxe_client_uefi }}");
+
         filename "{{ uefi_path }}/{{ pxe_client_uefi }}";
 
       } else {
 
-        log (info, "dhcpd-debug: CLIENT SYSTEM ARCH: BIOS x86-64 (default)");
+        log (info, "dhcpd-debug: eval client-system-arch defaults to 64bit BIOS x86");
         log (info, "dhcpd-debug: CLIENT FILENAME: {{ bios_path }}/{{ pxe_client_bios }}");
+
         filename "{{ bios_path }}/{{ pxe_client_bios }}";
 
       }

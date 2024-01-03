@@ -151,6 +151,7 @@
       
       
       
+      ##
       ##    xtoph_ocp4.matchbox_assets ... graft matchbox assets for specified version
       ##                                   overlay custom_assets_matchbox
       
@@ -164,6 +165,20 @@
           xtoph_ocp4: "{{ xtoph_ocp4 | combine({'matchbox_assets': {item.key: item.value}}, recursive=true) }}"
         loop: "{{ lookup('dict', custom_assets_matchbox[xtoph_ocp4.ocp.version] | default({}), wantlist=True ) }}"
         when: custom_assets_matchbox[xtoph_ocp4.ocp.version] is defined
+
+
+
+      ##
+      ##    Special handling for installation blk_dev
+      ##      when OCP version >= 4.6 we prepend '/dev/'
+      ##
+
+      - name: "main.yml : prepend '/dev/' to blk_dev when OCP version >= 4.6"
+        set_fact:
+          xtoph_ocp4: "{{ xtoph_ocp4 | combine( {'rhcos': {'blk_dev': t_blkdev}}, recursive=True ) }}"
+        vars:
+          t_blkdev: "{{ '/dev/' + xtoph_ocp4.rhcos.blk_dev }}"
+        when: xtoph_ocp4.ocp.version is version('4.6',operator='>=')
 
 
 
