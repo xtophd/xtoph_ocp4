@@ -198,15 +198,14 @@
               stat:
                 path: "/var/lib/matchbox/assets/{{ item }}"
               with_items:
-                - "{{ xtoph_ocp4.rhcos_assets.initramfs }}"
-                - "{{ xtoph_ocp4.rhcos_assets.kernel    }}"
-                - "{{ xtoph_ocp4.rhcos_assets.bios      }}"
-                - "{{ xtoph_ocp4.rhcos_assets.iso       }}"
-                - "{{ xtoph_ocp4.rhcos_assets.bios    | default([]) }}"
-                - "{{ xtoph_ocp4.rhcos_assets.uefi    | default([]) }}"
-                - "{{ xtoph_ocp4.rhcos_assets.metal   | default([]) }}"
-                - "{{ xtoph_ocp4.rhcos_assets.metal4k | default([]) }}"
-                - "{{ xtoph_ocp4.rhcos_assets.rootfs  | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.initramfs | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.kernel    | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.iso       | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.bios      | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.uefi      | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.metal     | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.metal4k   | default([]) }}"
+                - "{{ xtoph_ocp4.rhcos_assets.rootfs    | default([]) }}"
               register: asset_stats
             
             - name: "xtoph_ocp4 : config-bastion-matchbox : Red Hat CoreOS image download"
