@@ -23,7 +23,7 @@ menuentry 'Install Red Hat CoreOS {{ xtoph_ocp4.ocp.version }} [{{ t_name }}]' {
              usb-storage.delay_use={{ t_usbdelay }} \
              coreos.inst=yes \
              coreos.inst.install_dev={{ t_storage }} \
-             coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_bios }} \
+             coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_metal }} \
              coreos.inst.insecure=yes \
 {% if t_rootfs != "" %}
              coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }} \
