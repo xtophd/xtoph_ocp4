@@ -1,0 +1,28 @@
+{
+  "ignition": { "version": "3.0.0" },
+  "storage": {
+    "disks": [{
+      "device": "/dev{{ xtoph_ocp4.rhcos.blk_dev }}",
+      "wipeTable": true,
+      "partitions": [{
+        "number": 1,
+        "shouldExist": false
+      },{
+        "number": 2,
+        "shouldExist": false
+      },{
+        "number": 3,
+        "shouldExist": false
+      },{
+        "number": 4,
+        "shouldExist": false
+      }]
+    }],
+
+    "files": [{
+      "path": "/etc/someconfig",
+      "mode": 420,
+      "contents": { "source": "data:,example%20file%0A" }
+    }]
+  }
+}
