@@ -1,0 +1,22 @@
+#!/bin/bash
+
+##
+## Include the lib-exercise functions
+##
+
+. $(dirname "$0")/lib-exercise.sh
+
+##
+## Load the kubeconfig
+##
+
+export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+
+##
+##
+##
+
+exercise_cmd "List nodes with status" \
+             "oc get nodes"
+
+echo ""

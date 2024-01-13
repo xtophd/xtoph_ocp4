@@ -1,32 +1,60 @@
 {
- "id": "{{ t_profile }}-{{ t_name }}",
- "name": "{{ t_profile}}-{{ t_name }} server",
- "ignition_id": "{{ t_profile }}.ign",
- "boot": {
-  "kernel": "/assets/{{ t_kernel }}",
-  "initrd": [
-   "/assets/{{ t_initramfs }}"
-   ],
-   "args": [
-    "ip={{ t_network }}",
+  "id": "{{ t_profile }}-{{ t_name }}",
+  "name": "{{ t_profile}}-{{ t_name }} server",
+  "ignition_id": "{{ t_profile }}.ign",
+  "boot": {
+    "kernel": "/assets/{{ t_kernel }}",
+    "initrd": [
+      "/assets/{{ t_initramfs }}"
+      ],
+
+    "args": [
+      "ip={{ t_network }}",
 {% if t_bond != "" %}
-    "bond={{ t_bond }}",
+      "bond={{ t_bond }}",
 {% endif %}
-    "rd.neednet=1",
-    "console=tty0",
-    "usb-storage.delay_use={{ t_usbdelay }}",
-    "coreos.inst=yes",
-    "coreos.inst.install_dev={{ t_storage }}",
-    "coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_bios }}",
+      "rd.neednet=1",
+      "console=tty0",
+      "usb-storage.delay_use={{ t_usbdelay }}",
+      "coreos.inst=yes",
+      "coreos.inst.install_dev={{ t_storage }}",
+      "coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_bios }}",
 {% if t_rootfs != "" %}
-    "coreos.inst.insecure=yes",
-    "coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }}",
+      "coreos.inst.insecure=yes",
+      "coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }}",
 {% endif %}
 {% if t_loader == "uefi" %}
-    "coreos.inst.ignition_url=http://{{ t_addr}}:{{ t_port }}/ignition?mac=$net_default_mac"
+      "coreos.inst.ignition_url=http://{{ t_addr}}:{{ t_port }}/ignition?mac=$net_default_mac"
 {% else %}
-    "coreos.inst.ignition_url=http://{{ t_addr}}:{{ t_port }}/ignition?mac=${mac:hexhyp}"
+      "coreos.inst.ignition_url=http://{{ t_addr}}:{{ t_port }}/ignition?mac=${mac:hexhyp}"
 {% endif %}
-   ]
- }
+      ]
+  },
+
+  "storage": {
+    "disks": [{
+      "device": "/dev{{ xtoph_ocp4.rhcos.blk_dev }}",
+      "wipeTable": true,
+      "partitions": [{
+        "number": 1,
+        "shouldExist": false
+      },{
+        "number": 2,
+        "shouldExist": false
+      },{
+        "number": 3,
+        "shouldExist": false
+      },{
+        "number": 4,
+        "shouldExist": false
+      }]
+    }],
+
+    "files": [{
+      "path": "/etc/someconfig",
+      "mode": 420,
+      "contents": { "source": "data:,example%20file%0A" }
+    }]
+  }
+
 }

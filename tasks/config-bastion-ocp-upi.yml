@@ -61,6 +61,7 @@
                 - p_http_proxy:   "{{ xtoph_ocp4.bastion.squid_http_url if xtoph_ocp4.bastion.squid else xtoph_ocp4.ocp.http_proxy|default('') }}"
                 - p_https_proxy:  "{{ xtoph_ocp4.bastion.squid_https_url if xtoph_ocp4.bastion.squid else xtoph_ocp4.ocp.https_proxy|default('') }}"
                 - p_no_proxy:     "{{ g_no_proxy | default ('') }}"
+                - p_blkdev:       "/dev/{{ xtoph_ocp4.rhcos.blk_dev }}"
               template:
                 src: "ocp-install-config-sdn.j2"
                 dest: "{{ xtoph_ocp4.ocp.creds_dir }}/install-config.yaml"
@@ -78,6 +79,7 @@
                 - p_http_proxy:   "{{ xtoph_ocp4.bastion.squid_http_url if xtoph_ocp4.bastion.squid else xtoph_ocp4.ocp.http_proxy|default('') }}"
                 - p_https_proxy:  "{{ xtoph_ocp4.bastion.squid_https_url if xtoph_ocp4.bastion.squid else xtoph_ocp4.ocp.https_proxy|default('') }}"
                 - p_no_proxy:     "{{ g_no_proxy | default ('') }}"
+                - p_blkdev:       "/dev/{{ xtoph_ocp4.rhcos.blk_dev }}"
               template:
                 src: "ocp-install-config-ovn.j2"
                 dest: "{{ xtoph_ocp4.ocp.creds_dir }}/install-config.yaml"

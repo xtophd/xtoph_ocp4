@@ -35,6 +35,7 @@
         with_items:
           - {mode: '0744', src: 'workshop-approve-csr.j2',         dest: '/usr/local/bin/workshop-approve-csr.sh'}
           - {mode: '0744', src: 'workshop-check-health.j2',        dest: '/usr/local/bin/workshop-check-health.sh'}
+          - {mode: '0744', src: 'workshop-check-nodes.j2',         dest: '/usr/local/bin/workshop-check-nodes.sh'}
           - {mode: '0744', src: 'workshop-check-dns.j2',           dest: '/usr/local/bin/workshop-check-dns.sh'}
           - {mode: '0744', src: 'workshop-check-chrony.j2',        dest: '/usr/local/bin/workshop-check-chrony.sh'}
           - {mode: '0744', src: 'workshop-check-operators.j2',     dest: '/usr/local/bin/workshop-check-operators.sh'}

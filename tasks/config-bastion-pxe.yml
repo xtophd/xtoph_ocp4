@@ -101,6 +101,17 @@
         with_items:
           - "ipxe-x86_64.efi"
 
+
+
+      # 20240111
+      # NOTE:    I tried using RHEL8 /usr/share/ipxe/ipxe.lkrn but it hangs on
+      #          clients in the lab.  Switched back to undionly.kpxe as default
+      # HELPFUL
+      # LINK:    https://ipxe.org/appnote/buildtargets
+      #
+
+
+
       - name: "xtoph_ocp4 : config-bastion-pxe : (BIOS) copy ipxe client from RHEL to tftpboot"
         run_once: true
         copy: 
@@ -111,8 +122,7 @@
           group: root
           remote_src: yes
         with_items:
-      #    - "/usr/share/ipxe/undionly.kpxe"
-          - "/usr/share/ipxe/ipxe.lkrn"
+          - "/usr/share/ipxe/undionly.kpxe"
 
 
 

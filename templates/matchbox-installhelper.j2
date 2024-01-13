@@ -91,6 +91,20 @@ done
 
 
 echo ""
+echo "About to wipe disk ($1)"
+
+echo ""
+read -p "Press ENTER to continue [ctrl-c to abort]"
+
+wipefs -a $1
+
+
+
+## ----------
+
+
+
+echo ""
 echo "About to run CoreOS installer:"
 echo "coreos-installer install ${MY_BLKDEV} --ignition-url=http://{{ p_addr}}:{{ p_port }}/ignition?mac=${MY_MAC} --insecure-ignition"
 
@@ -109,10 +123,11 @@ coreos-installer install ${MY_BLKDEV} --ignition-url=http://{{ p_addr}}:{{ p_por
 
 
 echo ""
-echo "About to reboot"
-
-echo ""
+echo "  !!!"
+echo "  !!! About to REBOOT"
+echo "  !!!"
 echo "  !!! DON'T FORGET TO UNMOUNT VIRTUAL MEDIA !!!"
+echo "  !!!"
 echo ""
 
 

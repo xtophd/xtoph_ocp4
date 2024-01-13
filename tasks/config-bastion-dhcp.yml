@@ -130,8 +130,8 @@
         stat:
           path: "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}/{{ item }}"
         loop:
-          - "ipxe.lkrn"
           - "undionly.kpxe"
+          - "ipxe.lkrn"
         register: test_bios_files
 
       - name: "xtoph_ocp4 : config-bastion-dhcp : (BIOS) determine pxe client"
