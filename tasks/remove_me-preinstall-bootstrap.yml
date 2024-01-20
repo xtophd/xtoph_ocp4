@@ -38,3 +38,20 @@
           state: started
           timeout: 30
 
+
+
+      - name: "xtoph_ocp4 : config-bastion-matchbox : flip master node to perform ignition"
+        vars:
+          - t_profile:   "bootstrap"
+          - t_name:      "{{ inventory_hostname_short }}"
+        replace:
+          path: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
+          regexp:  '(\+)"ignition_id".*'
+          replace: '\1"ignition_id": "bootstrap.ign"'
+        when:
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap
+          - inventory_hostname in xtoph_ocp4._cluster_masters
+
+
+
+      - fail: msg="xtoph_ocp4 : config-bastion-matchbox : TEMPORARY FAIL"

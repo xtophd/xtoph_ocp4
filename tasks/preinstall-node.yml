@@ -10,7 +10,18 @@
       #    is UPI (not assisted_installer AI)
       #
 
+      - debug:
+          msg:
+            - "DEBUG: ***"
+            - "DEBUG: *** PREINSTALL-NODE: {{ inventory_hostname }}"
+            - "DEBUG: *** {{ xtoph_ocp4_action }} /  {{ xtoph_ocp4_subaction | default('') }}"
+            - "DEBUG: ***"
 
+
+
+      #
+      # bootstrap (flip)
+      #
 
       - block:
 
@@ -20,7 +31,7 @@
             #    bootstrap deployment
             #
 
-            - name: "xtoph_ocp4 : preinstall-node : (bootstrap) test DNS port on bastion"
+            - name: "xtoph_ocp4 : preinstall-node (bootstrap) : test DNS port on bastion"
               when: xtoph_ocp4.bastion.dns == true
               wait_for:
                 host: "{{ xtoph_ocp4.bastion.host_fqdn }}"
@@ -31,7 +42,7 @@
                 state: started
                 timeout: 30
           
-            - name: "xtoph_ocp4 : preinstall-node : (bootstrap) test MATCHBOX port on bastion"
+            - name: "xtoph_ocp4 : preinstall-node (bootstrap) : test MATCHBOX port on bastion"
               when: xtoph_ocp4.bastion.matchbox == true
               wait_for:
                 host: "{{ xtoph_ocp4.bastion.host_fqdn }}"
@@ -42,9 +53,41 @@
                 state: started
                 timeout: 30
 
-        when: inventory_hostname in xtoph_ocp4._cluster_bootstrap
+            - block:
+
+                  #    
+                  #    Here we 'flip' the master's normal master.ign  with     
+                  #    bootstrap.ign.  Now the first master will be the bootstrap.
+                  #    When the other 2 masters are online, we 'flop' back
+                  #    and redeploy (search 'bootstrap-flop' below)
+                  #
+
+                  - name: "xtoph_ocp4 : preinstall-node (bootstrap-flip) : flip master node profile to bootstrap"
+                    vars:
+                      - t_profile:   "master"
+                      - t_name:      "{{ inventory_hostname_short }}"
+                    replace:
+                      path:    "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json"
+                      regexp:  '(.*)master\.ign(.*)'
+                      replace: '\1bootstrap.ign\2'
+
+                  - name: "xtoph_ocp4 : preinstall-node (bootstrap-flip) : enable and restart matchbox service"
+                    service: 
+                      name: "matchbox" 
+                      state: restarted 
+                      enabled: yes 
+
+              when:
+                - inventory_hostname in xtoph_ocp4._cluster_masters
+      
+        when: 
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap
+          - xtoph_ocp4_subaction is defined and xtoph_ocp4_subaction == "preinstall-bootstrap"
 
 
+      # 
+      # masters
+      # 
 
       - block:
 
@@ -56,7 +99,7 @@
             #    never come.
             #
       
-            - name: "xtoph_ocp4 : preinstall-node : (master) verify CONFIG SERVER port on masters is NOT active"
+            - name: "xtoph_ocp4 : preinstall-node (master) : verify CONFIG SERVER port on masters is NOT active"
               ignore_errors: true
               wait_for:
                 host: "{{ item }}"
@@ -67,7 +110,7 @@
                 state: started
                 timeout: 15
               register: config_service_master
-              loop: "{{ xtoph_ocp4._cluster_masters }}"
+              loop: "{{ xtoph_ocp4._cluster_masters | difference(xtoph_ocp4._cluster_bootstrap) }}"
       
             - debug: var=config_service_master
               when: xtoph_ocp4._debug == true
@@ -77,7 +120,7 @@
             #    unless masters are already online providing config-service
             #
       
-            - name: "xtoph_ocp4 : preinstall-node : (master) wait for  CONFIG SERVER port on bootstrap"
+            - name: "xtoph_ocp4 : preinstall-node (master) : wait for  CONFIG SERVER port on bootstrap"
               run_once: true
               wait_for:
                 host: "{{ item }}"
@@ -94,9 +137,73 @@
             - debug: var=config_service_bootstrap
               when: xtoph_ocp4._debug == true
 
-        when: inventory_hostname in xtoph_ocp4._cluster_masters
+        when: 
+          - inventory_hostname in xtoph_ocp4._cluster_masters
+          - inventory_hostname not in xtoph_ocp4._cluster_bootstrap
+          - xtoph_ocp4_subaction is defined and xtoph_ocp4_subaction == "preinstall-masters"
 
 
+
+      #
+      #  bootstrap (flop)
+      #
+
+      - block:
+
+            - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) :  wait for config-service shutdown on bootstrap"
+              wait_for:
+                host: "{{ hostvars[item]['h_pubIP'] }}"
+                connect_timeout: 5
+                delay: 3
+                port: 22623
+                sleep: 5
+                state: stopped
+                timeout: 1800
+              loop: "{{ xtoph_ocp4._cluster_bootstrap }}"
+
+            - name: "xtoph_ocp4 : preistall-node (bootstrap-flop) : issue graceful shutdown to bootstrap"
+              delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+              shell:
+                cmd: |
+                  ssh core@{{ inventory_hostname }} sudo systemctl -f poweroff
+
+            - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) : wait for OCP node systemd port stopped"
+              wait_for:
+                host: "{{ inventory_hostname }}"
+                connect_timeout: 3
+                port: 111
+                sleep: 5
+                state: stopped
+                timeout: 180
+              ignore_errors: yes
+              when:
+                - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+
+            - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) : revert master node profile back to master.ign"
+              vars:
+                - t_profile:   "master"
+                - t_name:      "{{ inventory_hostname_short }}"
+              replace:
+                path:    "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json"
+                regexp:  '(.*)master\.ign(.*)'
+                replace: '\1master.ign\2'
+
+            - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) : enable and restart matchbox service"
+              service: 
+                name: "matchbox" 
+                state: restarted 
+                enabled: yes 
+
+        when:
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap
+          - inventory_hostname in xtoph_ocp4._cluster_masters
+          - xtoph_ocp4_subaction is defined and xtoph_ocp4_subaction == "preinstall-bootstrap-flop"
+
+
+
+      ##
+      ##  workers
+      ##
 
       - block:
 
@@ -104,7 +211,6 @@
             #    wait here until MASTERS provide config-service 
             #
       
-
             - name: "xtoph_ocp4 : preinstall-node : (worker) wait for availability of config-server on masters"
               wait_for:
                 host: "{{ hostvars[item]['h_pubIP'] }}"
@@ -116,7 +222,9 @@
                 timeout: 1800
               loop: "{{ xtoph_ocp4._cluster_masters | difference(xtoph_ocp4._cluster_bootstrap) }}"
 
-        when: inventory_hostname in xtoph_ocp4._cluster_workers
+        when: 
+          - inventory_hostname in xtoph_ocp4._cluster_workers 
+          - xtoph_ocp4_subaction is defined and xtoph_ocp4_subaction == "preinstall-workers"
 
 
 

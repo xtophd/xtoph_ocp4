@@ -231,9 +231,9 @@
       - set_fact:
           _xtoph_ocp4_dict_processed: true
 
-
-
   when: _xtoph_ocp4_dict_processed is undefined
+
+
 
 ################################################################################
 ################################################################################
@@ -245,48 +245,15 @@
 ##    based on variable xtoph_ocp4_action
 ##
 
-
 - name: "main.yml : setup deployhost (controller)"
   include_tasks: "deployer-setup.yml"
   when:
     - xtoph_ocp4_action == "setup"
 
-
 - name: "main.yml : configure bastion host"
   include_tasks: "config-bastion.yml"
   when:
     - xtoph_ocp4_action == "config-bastion"
-
-
-##
-##    At the moment we don't do any of these things
-##    when deploying from the assisted installer
-##
-
-# - block:
-#      - include_tasks: "preinstall-bootstrap.yml"
-#        when:
-#          - xtoph_ocp4_action == "preinstall-bootstrap" 
-#      
-#      - include_tasks: "preinstall-masters.yml"
-#        when:
-#          - xtoph_ocp4_action == "preinstall-masters"
-#      
-#      - include_tasks: "preinstall-workers.yml"
-#        when:
-#          - xtoph_ocp4_action == "preinstall-workers"
-#      
-#      - include_tasks: "preinstall-node.yml"
-#        when:
-#          - xtoph_ocp4_action == "preinstall-node"
-#      
-#      - include_tasks: "postinstall-node.yml"
-#        when:
-#          - xtoph_ocp4_action == "postinstall-node"
-#  when:
-#    - xtoph_ocp4.bastion.assisted_installer == false
-
-
 
 - include_tasks: "preinstall-node.yml"
   when:

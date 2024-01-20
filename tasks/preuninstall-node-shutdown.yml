@@ -63,11 +63,16 @@
         register: ssh_status
         ignore_errors: yes
 
-      - name: "xtoph_ocp4 : preunistall-node-shutdown : issue graceful OCP node shutdown"
+
+      #
+      #    By specifying --force twice, systemd essentially unplugs the OS (not a safe shutdown)
+      #
+
+      - name: "xtoph_ocp4 : preunistall-node-shutdown : issue graceful OCP node poweroff"
         delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
         shell:
           cmd: |
-            ssh core@{{ inventory_hostname }} nohup 'sleep 3 && sudo shutdown -h now' &
+            ssh core@{{ inventory_hostname }} sudo systemctl -f poweroff
         when: 
           - ssh_status is not failed
           - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
