@@ -56,11 +56,24 @@
             - block:
 
                   #    
-                  #    Here we 'flip' the master's normal master.ign  with     
-                  #    bootstrap.ign.  Now the first master will be the bootstrap.
-                  #    When the other 2 masters are online, we 'flop' back
+                  #    Here we 'flip' either a worker's or master's normal ignition with     
+                  #    bootstrap.ign.  Now the flipped node will be the bootstrap.
+                  #    When the control plane is online, we 'flop' back
                   #    and redeploy (search 'bootstrap-flop' below)
                   #
+                  #        NOTE: flipping a master only works with OCP > 4.11
+                  #
+
+                  - name: "xtoph_ocp4 : preinstall-node (bootstrap-flip) : flip worker node profile to bootstrap"
+                    vars:
+                      - t_profile:   "worker"
+                      - t_name:      "{{ inventory_hostname_short }}"
+                    replace:
+                      path:    "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json"
+                      regexp:  '(.*)worker\.ign(.*)'
+                      replace: '\1bootstrap.ign\2'
+                    when:
+                      - inventory_hostname in xtoph_ocp4._cluster_workers 
 
                   - name: "xtoph_ocp4 : preinstall-node (bootstrap-flip) : flip master node profile to bootstrap"
                     vars:
@@ -70,6 +83,8 @@
                       path:    "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json"
                       regexp:  '(.*)master\.ign(.*)'
                       replace: '\1bootstrap.ign\2'
+                    when:
+                      - inventory_hostname in xtoph_ocp4._cluster_masters 
 
                   - name: "xtoph_ocp4 : preinstall-node (bootstrap-flip) : enable and restart matchbox service"
                     service: 
@@ -78,10 +93,11 @@
                       enabled: yes 
 
               when:
-                - inventory_hostname in xtoph_ocp4._cluster_masters
+                - inventory_hostname in xtoph_ocp4._cluster_masters or
+                  inventory_hostname in xtoph_ocp4._cluster_workers 
       
         when: 
-          - inventory_hostname in xtoph_ocp4._cluster_bootstrap
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap_elected
           - xtoph_ocp4_subaction is defined and xtoph_ocp4_subaction == "preinstall-bootstrap"
 
 
@@ -110,7 +126,7 @@
                 state: started
                 timeout: 15
               register: config_service_master
-              loop: "{{ xtoph_ocp4._cluster_masters | difference(xtoph_ocp4._cluster_bootstrap) }}"
+              loop: "{{ xtoph_ocp4._cluster_masters | difference(xtoph_ocp4._cluster_bootstrap_elected) }}"
       
             - debug: var=config_service_master
               when: xtoph_ocp4._debug == true
@@ -131,7 +147,7 @@
                 state: started
                 timeout: 1800 
               register: config_service_bootstrap
-              loop: "{{ xtoph_ocp4._cluster_bootstrap }}"
+              loop: "{{ xtoph_ocp4._cluster_bootstrap_elected }}"
               when: config_service_master.failed is defined
       
             - debug: var=config_service_bootstrap
@@ -139,7 +155,7 @@
 
         when: 
           - inventory_hostname in xtoph_ocp4._cluster_masters
-          - inventory_hostname not in xtoph_ocp4._cluster_bootstrap
+          - inventory_hostname not in xtoph_ocp4._cluster_bootstrap_elected
           - xtoph_ocp4_subaction is defined and xtoph_ocp4_subaction == "preinstall-masters"
 
 
@@ -159,7 +175,7 @@
                 sleep: 5
                 state: stopped
                 timeout: 1800
-              loop: "{{ xtoph_ocp4._cluster_bootstrap }}"
+              loop: "{{ xtoph_ocp4._cluster_bootstrap_elected }}"
 
             - name: "xtoph_ocp4 : preistall-node (bootstrap-flop) : issue graceful shutdown to bootstrap"
               delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
@@ -177,7 +193,18 @@
                 timeout: 180
               ignore_errors: yes
               when:
-                - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+                - inventory_hostname in xtoph_ocp4._cluster_bootstrap_elected + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+
+            - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) : revert worker node profile back to worker.ign"
+              vars:
+                - t_profile:   "worker"
+                - t_name:      "{{ inventory_hostname_short }}"
+              replace:
+                path:    "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json"
+                regexp:  '(.*)bootstrap\.ign(.*)'
+                replace: '\1worker.ign\2'
+              when:
+                - inventory_hostname in xtoph_ocp4._cluster_workers
 
             - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) : revert master node profile back to master.ign"
               vars:
@@ -185,8 +212,10 @@
                 - t_name:      "{{ inventory_hostname_short }}"
               replace:
                 path:    "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json"
-                regexp:  '(.*)master\.ign(.*)'
+                regexp:  '(.*)bootstrap\.ign(.*)'
                 replace: '\1master.ign\2'
+              when:
+                - inventory_hostname in xtoph_ocp4._cluster_masters
 
             - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) : enable and restart matchbox service"
               service: 
@@ -195,8 +224,9 @@
                 enabled: yes 
 
         when:
-          - inventory_hostname in xtoph_ocp4._cluster_bootstrap
-          - inventory_hostname in xtoph_ocp4._cluster_masters
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap_elected
+          - inventory_hostname in xtoph_ocp4._cluster_masters or
+            inventory_hostname in xtoph_ocp4._cluster_workers
           - xtoph_ocp4_subaction is defined and xtoph_ocp4_subaction == "preinstall-bootstrap-flop"
 
 
@@ -220,7 +250,7 @@
                 sleep: 5
                 state: started
                 timeout: 1800
-              loop: "{{ xtoph_ocp4._cluster_masters | difference(xtoph_ocp4._cluster_bootstrap) }}"
+              loop: "{{ xtoph_ocp4._cluster_masters | difference(xtoph_ocp4._cluster_bootstrap_elected) }}"
 
         when: 
           - inventory_hostname in xtoph_ocp4._cluster_workers 

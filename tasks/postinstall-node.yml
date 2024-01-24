@@ -25,17 +25,6 @@
           state: started
           timeout: 1800
 
-      - name: "xtoph_ocp4 : preinstall-node : (bootstrap) flip master node back to perform master ignition"
-        vars:
-          - t_profile:   "master"
-          - t_name:      "{{ inventory_hostname_short }}"
-        replace:
-          path:    "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json"
-          regexp:  '(.*)bootstrap\.ign(.*)'
-          replace: '\1master.ign\2'
-        when:
-          - inventory_hostname in xtoph_ocp4._cluster_masters
-          - inventory_hostname in xtoph_ocp4._cluster_bootstrap
 
 
       ##

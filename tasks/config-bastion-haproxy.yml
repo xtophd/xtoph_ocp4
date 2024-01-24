@@ -131,7 +131,6 @@
           - p_ip:       "*"
           - p_port:     "6443"
           - p_order:    "25"
-#          - p_item:     "{{ item }}"
           - p_name:     "{{ inventory_hostname_short }}"
           - p_addr:     "{{ h_pubIP }}"
         template:
@@ -140,8 +139,7 @@
           owner: root
           group: root
           mode: 644
-        #loop: "{{ xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_bootstrap }}"
-        when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_bootstrap
+        when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_bootstrap_elected
 
 
  
@@ -170,7 +168,6 @@
           - p_ip:       "*"
           - p_port:     "22623"
           - p_order:    "35"
-#          - p_item:     "{{ item }}"
           - p_name:     "{{ inventory_hostname_short }}"
           - p_addr:     "{{ h_pubIP }}"
         template:
@@ -179,8 +176,7 @@
           owner: root
           group: root
           mode: 644
-        #loop: "{{ xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_bootstrap }}"
-        when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_bootstrap
+        when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_bootstrap_elected
 
 
 

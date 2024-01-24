@@ -13,6 +13,7 @@
   wildcard_fqdn:    "{{ workshop_extras.ocp_wfqdn         | default('--required--') }}"
   user:             "{{ workshop_vars.ocp_user            | default('cloud-user')   }}"
   version:          "{{ workshop_vars.ocp_version         | default('4.11')         }}"
+  strapless:        "{{ workshop_vars.ocp_strapless       | default(False)          }}"
   http_proxy:       "{{ workshop_vars.http_proxy          | default('')             }}"
   https_proxy:      "{{ workshop_vars.https_proxy         | default('')             }}"
   no_proxy:         "{{ workshop_vars.no_proxy            | default('')             }}"

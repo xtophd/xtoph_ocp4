@@ -180,6 +180,58 @@
           t_blkdev: "{{ '/dev/' + xtoph_ocp4.rhcos.blk_dev }}"
         when: xtoph_ocp4.ocp.version is version('4.6',operator='>=')
 
+      ##
+      ##    Special handling for bootstrap (straplesss / flip-flop)
+      ##
+
+
+      - run_once: true
+        block:
+      
+            - debug:
+                msg: 
+                  - "########################################"
+                  - "OCP Bootstrap Election"
+                  - "  If strapless == false then use node from myBootstrap"
+                  - "  If strapless == true && version >= 4.11 then use node from myMasters"
+                  - "  If strapless == true && version <  4.11 then use node from myWorkers"
+                  - ""
+                  - "OCP Strapless = {{ xtoph_ocp4.ocp.strapless }}"
+                  - "OCP Version = {{ xtoph_ocp4.ocp.version }}"
+              when: xtoph_ocp4._debug == true
+          
+            - name: "main.yml: elect bootstrap node from myBootstrap"
+              add_host:
+                name:   "{{ groups.myBootstrap | first }}"
+                groups: "electedBootstrap"
+              when:
+                - xtoph_ocp4.ocp.strapless == False
+            
+            - name: "main.yml: elect bootstrap node from myMasters"
+              add_host:
+                name:   "{{ groups.myMasters | first }}"
+                groups: "electedBootstrap"
+              when:
+                - xtoph_ocp4.ocp.strapless == True
+                - xtoph_ocp4.ocp.version is version('4.11',operator='>=')
+            
+            - name: "main.yml: elect bootstrap node from myWorkers"
+              add_host:
+                name:   "{{ groups.myWorkers | first }}"
+                groups: "electedBootstrap"
+              when:
+                - xtoph_ocp4.ocp.strapless == True
+                - xtoph_ocp4.ocp.version is version('4.11',operator='<')
+            
+            - debug:
+                msg: 
+                  - "OCP Elected Bootstrap = {{ groups.electedBootstrap }}"
+              when: xtoph_ocp4._debug == true
+
+      - name: "main.yml : save the electedBootstrap in xtoph_ocp4 dictionary"
+        set_fact:
+          xtoph_ocp4: "{{ xtoph_ocp4 | combine( {'_cluster_bootstrap_elected': groups.electedBootstrap}, recursive=True ) }}"
+      
 
 
       ##
@@ -188,7 +240,9 @@
       ##
 
       - name: "main.yml : DEBUG"
-        debug: var=xtoph_ocp4
+        debug: 
+          var: xtoph_ocp4
+        when: xtoph_ocp4._debug == true
 
 
 
@@ -222,8 +276,6 @@
                 dest:     "{{ xtoph_ocp4._tmp_dir }}/xtoph_ocp4.yml"
                 content:  "{{ xtoph_ocp4 | to_nice_yaml }}"
 
-
-
       ##
       ##    Now we can set the flag that indicates processing is completed
       ##
@@ -237,8 +289,6 @@
 
 ################################################################################
 ################################################################################
-
-
 
 ##
 ##    Jump to the component of this role

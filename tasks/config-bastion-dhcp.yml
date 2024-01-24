@@ -167,7 +167,7 @@
         when:
           - inventory_hostname in xtoph_ocp4._cluster_masters + 
                                   xtoph_ocp4._cluster_workers + 
-                                  xtoph_ocp4._cluster_bootstrap
+                                  xtoph_ocp4._cluster_bootstrap_elected
 
       - name: "xtoph_ocp4 : config-bastion-dhcp : deploy NON-CLUSTER host config framents"
         run_once: false 
@@ -180,7 +180,7 @@
         when:
           - inventory_hostname not in xtoph_ocp4._cluster_masters + 
                                       xtoph_ocp4._cluster_workers + 
-                                      xtoph_ocp4._cluster_bootstrap + 
+                                      xtoph_ocp4._cluster_bootstrap_elected + 
                                       xtoph_ocp4._cluster_bastion
 
       - name: "xtoph_ocp4 : config-bastion-dhcp : deploy standard options"
