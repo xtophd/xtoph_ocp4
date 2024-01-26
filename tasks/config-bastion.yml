@@ -10,7 +10,10 @@
 - name: "config-bastion.yml : ***** BEGIN XTOPH_OCP4/config-bastion ROLE PROCESSING *****"
   debug: msg="inventory_hostname={{ inventory_hostname }}"
 
-
+- name: "config-bastion.yml : test assertions"
+  include_tasks: "config-bastion-assertions.yml"
+  when:
+    - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "assert"
 
 - include_tasks: "config-bastion-ocp-testlock.yml"
 

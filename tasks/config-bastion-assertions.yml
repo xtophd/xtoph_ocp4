@@ -1,0 +1,98 @@
+
+
+
+#
+#    Assertions to check before starting
+#    configuration of the bastion server
+#
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  run_once: true
+  block:
+
+#
+#      - name: "xtoph_ocp4 : config-bastion-assertions : located ocm-secret.txt"
+#
+
+      - debug:
+         msg: 
+           - "########################################"
+           - "Assert Tests"
+           - "  OCP Version          = {{ xtoph_ocp4.ocp.version }}"
+           - "  Strapless Mode       = {{ xtoph_ocp4.ocp.strapless }}"
+           - "  Assisted Installer   = {{ xtoph_ocp4.bastion.assisted_installer }}"
+           - "  Node Counts"
+           - "    Bootstrap = {{ groups.myBootstrap | length }}"
+           - "    Masters   = {{ groups.myMasters   | length }}"
+           - "    Workers   = {{ groups.myWorkers   | length }}"
+
+
+      - name: "xtoph_ocp4 : config-bastion-assertions : locate pull-secret.txt"
+        ansible.builtin.assert:
+          success_msg: 'Pull Secret Found'
+          fail_msg:    'Please download and put a copy of your pull-secret.txt file in ./config'
+          that:
+            - lookup('file','../config/pull-secret.txt') or
+              lookup('file','/root/{{ xtoph_ocp4.ocp.clustername }}-pull-secret.txt') 
+
+      - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for UPI"
+        ansible.builtin.assert: 
+          success_msg: 'Node Count Is Sufficient'
+          fail_msg:    'Node Count INSUFFICIENT: UPI install requires 1 boostrap and 3 masters'
+          that:
+            - xtoph_ocp4._cluster_bootstrap_elected | length == 1
+            - xtoph_ocp4._cluster_masters | list == 3
+            - xtoph_ocp4._cluster_workers | list >= 0
+        when:
+          - xtoph_ocp4.ocp.strapless == False
+
+      - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for strapless UPI (OCP < 4.11)"
+        ansible.builtin.assert: 
+          success_msg: 'Node Count Is Sufficient'
+          fail_msg:    'Node Count INSUFFICIENT: strapless UPI install requires 3 masters and 1+ workers'
+          that:
+            - xtoph_ocp4._cluster_bootstrap_elected | length == 1
+            - xtoph_ocp4._cluster_masters | length == 3
+            - xtoph_ocp4._cluster_workers | length >= 1
+        when:
+          - xtoph_ocp4.ocp.strapless == True
+          - xtoph_ocp4.ocp.version is version('4.11',operator='<')
+
+      - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for strapless UPI (OCP >= 4.11)"
+        ansible.builtin.assert: 
+          success_msg: 'Node Count Is Sufficient'
+          fail_msg:    'Node Count INSUFFICIENT: strapless UPI install requires 3 masters and 0+ workers'
+          that:
+            - xtoph_ocp4._cluster_bootstrap_elected | length == 1
+            - xtoph_ocp4._cluster_masters | length == 3
+            - xtoph_ocp4._cluster_workers | length >= 0
+        when:
+          - xtoph_ocp4.ocp.strapless == True
+          - xtoph_ocp4.ocp.version is version('4.11',operator='>=')
+            
+      - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for assisted installer (AI)"
+        ansible.builtin.assert: 
+          success_msg: 'Node Count Is Sufficient'
+          fail_msg:    'Node Count INSUFFICIENT: AI install requires 3 masters and 0+ workers'
+          that:
+            - xtoph_ocp4.ocp.version is version('4.9',operator='>=')
+            - xtoph_ocp4._cluster_masters | length == 3
+            - xtoph_ocp4._cluster_workers | length >= 0
+        when:
+          - xtoph_ocp4.bastion.assisted_installer == True
+          - xtoph_ocp4.ocp.sno == False
+
+      - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for assisted installer single node (AI-SNO)"
+        ansible.builtin.assert: 
+          success_msg: 'Node Count Is Sufficient'
+          fail_msg:    'Node Count INSUFFICIENT: AI install requires 1+ master'
+          that:
+            - xtoph_ocp4.ocp.version is version('4.9',operator='>=')
+            - xtoph_ocp4._cluster_masters | length >= 1
+            - xtoph_ocp4._cluster_workers | length >= 0
+        when:
+          - xtoph_ocp4.bastion.assisted_installer == True
+          - xtoph_ocp4.ocp.sno == True
+            
