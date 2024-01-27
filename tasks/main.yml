@@ -295,6 +295,11 @@
 ##    based on variable xtoph_ocp4_action
 ##
 
+- name: "main.yml : early assertions"
+  include_tasks: "assertions.yml"
+  when:
+    - xtoph_ocp4_action == "assert"
+
 - name: "main.yml : setup deployhost (controller)"
   include_tasks: "deployer-setup.yml"
   when:
