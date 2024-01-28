@@ -65,7 +65,7 @@
 
 
       #
-      #    By specifying --force twice, systemd essentially unplugs the OS (not a safe shutdown)
+      #    By specifying --force twice, systemd essentially unplugs the OS (not a safe shutdown), once is good enough
       #
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : issue graceful OCP node poweroff"
@@ -75,7 +75,7 @@
             ssh core@{{ inventory_hostname }} sudo systemctl -f poweroff
         when: 
           - ssh_status is not failed
-          - inventory_hostname in xtoph_ocp4._cluster_bootstrap_elected + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : wait for OCP node systemd port stopped"
         wait_for:
@@ -88,7 +88,7 @@
         ignore_errors: yes
         when: 
           - ssh_status is not failed
-          - inventory_hostname in xtoph_ocp4._cluster_bootstrap_elected + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
 
   rescue:
       - debug: msg="node {{inventory_hostname}} is already down"

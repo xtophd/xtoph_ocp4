@@ -42,7 +42,25 @@
                 info cluster {{ xtoph_ocp4.ocp.clustername }} 
         ignore_errors: true
         register: aicli_status
-      
+
+# SOMETHING STARTED TO FAIL / NEED TO TEST ALTERNATE OPTIONS      
+#      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new SNO cluster configuration"
+#        shell:
+#          cmd: |
+#            aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
+#                  create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
+#                  -P sno=true                                                     \
+#                  -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
+#                  -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
+#                  -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
+#                  -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
+#                  -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
+#                  -P network_type="OVNKubernetes"                                 \
+#                  -P vip_dhcp_allocation="false"                                  
+#        when: 
+#          - aicli_status.rc != 0 
+#          - xtoph_ocp4.ocp.sno == true
+
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new SNO cluster configuration"
         shell:
           cmd: |
@@ -52,8 +70,6 @@
                   -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
                   -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
                   -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
-                  -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
-                  -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
                   -P network_type="OVNKubernetes"                                 \
                   -P vip_dhcp_allocation="false"                                  
         when: 

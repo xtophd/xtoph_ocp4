@@ -281,17 +281,7 @@
             #
 
 
-            #
-            #    NOTE:
-            #
-            #        If the node being used for a bootstrap is a master or worker  node,
-            #        we do NOT deplooy any matchbox configs related to bootstrap
-            #        we will just use a ansible config editor to swap ignition configs
-            #        during the deployment phases.  Check the preinstall tasks
-            #   
-     
 
- 
             - name: "xtoph_ocp4 : config-bastion-matchbox : deploy bootstrap configs"
               vars:
                 - t_profile:   "bootstrap"
@@ -305,11 +295,9 @@
                 - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
                 - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
               when: 
-                - inventory_hostname in xtoph_ocp4._cluster_bootstrap_elected
-                - inventory_hostname not in xtoph_ocp4._cluster_masters
-                - inventory_hostname not in xtoph_ocp4._cluster_workers
-  
-      
+                - inventory_hostname in xtoph_ocp4._cluster_bootstrap
+     
+ 
       
             - name: "xtoph_ocp4 : config-bastion-matchbox : deploy master configs"
               vars:

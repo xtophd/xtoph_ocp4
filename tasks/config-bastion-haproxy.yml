@@ -139,7 +139,7 @@
           owner: root
           group: root
           mode: 644
-        when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_bootstrap_elected
+        when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_bootstrap_flipflop
 
 
  
@@ -176,7 +176,7 @@
           owner: root
           group: root
           mode: 644
-        when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_bootstrap_elected
+        when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_bootstrap_flipflop
 
 
 
