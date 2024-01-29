@@ -17,7 +17,7 @@
           cmd: |
             dig @{{ p_server }} {{ p_name }} +short
             dig -x @{{ p_server }} {{ p_addr }} +short
-        loop: "{{ cluster_hosts }}"
+        loop: "{{ _cluster_bootstrap + _cluster_masters + _cluster_workers }}"
         changed_when: false
 
 
