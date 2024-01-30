@@ -99,7 +99,7 @@
           uefi_path:        "/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}"
           pxe_client_uefi:  "{{ item }}"
         with_items:
-          - "{{ test_uefi_files.results | selectattr('stat.exists') | map(attribute='item') | list | first }}"
+          - "{{ test_uefi_files.results | selectattr('stat.exists') | map(attribute='item') | list | first | default('') }}"
         when:
           - xtoph_ocp4.ocp.version is version('4.9',operator='>=')
 
@@ -139,7 +139,7 @@
           bios_path:  "/bios/rhcos-{{ xtoph_ocp4.ocp.version }}"
           pxe_client_bios:  "{{ item }}"
         with_items:
-          - "{{ test_bios_files.results | selectattr('stat.exists') | map(attribute='item') | list | first }}"
+          - "{{ test_bios_files.results | selectattr('stat.exists') | map(attribute='item') | list | first | default('') }}"
 
       - debug:
           msg: 

@@ -330,7 +330,9 @@
           - ansible_facts['services']['firewalld.service']['state'] == 'running'
 
 
-  when: xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
+  when: 
+    - xtoph_ocp4.bastion.assisted_installer is undefined or 
+      xtoph_ocp4.bastion.assisted_installer == false
 
 
   vars:
