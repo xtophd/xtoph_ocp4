@@ -5,16 +5,15 @@
 #    Assertions to check before starting
 #    configuration of the bastion server
 #
+#    These should run on the controller before
+#    anything is deployed
+#
 
 
 
-- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+- delegate_to: localhost
   run_once: true
   block:
-
-#
-#      - name: "xtoph_ocp4 : config-bastion-assertions : located ocm-secret.txt"
-#
 
       - debug:
          msg: 
@@ -25,26 +24,44 @@
            - "  Assisted Installer      = {{ xtoph_ocp4.bastion.assisted_installer }}"
            - "  Assisted Installer SNO  = {{ xtoph_ocp4.ocp.sno }}"
            - "  Node Counts"
-           - "    Bootstrap         = {{ _cluster_bootstrap | length }}"
-           - "    BootstrapFlipFlop = {{ _cluster_bootstrap_flipflop | length }}"
-           - "    Masters           = {{ _cluster_masters | length }}"
-           - "    Workers           = {{ _cluster_workers | length }}"
-           - "    SNO               = {{ _cluster_sno | length }}"
+           - "    Bootstrap         = {{ xtoph_ocp4._cluster_bootstrap | length }}"
+           - "    BootstrapFlipFlop = {{ xtoph_ocp4._cluster_bootstrap_flipflop | length }}"
+           - "    Masters           = {{ xtoph_ocp4._cluster_masters | length }}"
+           - "    Workers           = {{ xtoph_ocp4._cluster_workers | length }}"
+           - "    SNO               = {{ xtoph_ocp4._cluster_sno | length }}"
 
+      - name: "xtoph_ocp4 : assertions : look for Pull Secret"
+        stat: 
+          path: "{{ inventory_dir }}/pull-secret.txt"
+        register: found_secret
 
-      - name: "xtoph_ocp4 : config-bastion-assertions : locate pull-secret.txt"
+      - name: "xtoph_ocp4 : assertions : look for OCM Token"
+        stat: 
+          path:  "{{ inventory_dir }}/ocm-token.txt"
+        register: found_token
+      
+      - name: "xtoph_ocp4 : assertions : confirm Pull Secret"
         ansible.builtin.assert:
           success_msg: 'Pull Secret Found'
-          fail_msg:    'Please download and put a copy of your pull-secret.txt file in ./config'
+          fail_msg:    
+            - 'Please download and put a copy of your Pull Secret in {{ inventory_dir }}'
+            - 'RETRIEVE PULL-SECRET from: https://cloud.redhat.com/openshift/install/metal/user-provisioned'
+            - 'SAVE PULL-SECRET here: ./config/pull-secret.txt'
           that:
-            - lookup('file','./config/pull-secret.txt') 
+            - found_secret.stat.exists
 
-      - name: "xtoph_ocp4 : config-bastion-assertions : locate ocm-token.txt"
+      - name: "xtoph_ocp4 : assertions : confirm OCM Token"
         ansible.builtin.assert:
           success_msg: 'OCM Token Found'
-          fail_msg:    'Please download and put a copy of your ocp-tocken.txt file in ./config'
+          fail_msg:    
+            - 'Please download and put a copy of your OCM Token in {{ inventory_dir }}'
+            - 'RETRIEVE PULL-SECRET from: https://cloud.redhat.com/openshift/token'
+            - 'SAVE PULL-SECRET here: ./config/ocm-token.txt'
           that:
-            - lookup('file','./config/ocm-token.txt') 
+            - found_token.stat.exists
+        when:
+          - xtoph_ocp4.bastion.assisted_installer is defined
+          - xtoph_ocp4.bastion.assisted_installer == true
 
       - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for traditional UPI"
         ansible.builtin.assert: 
