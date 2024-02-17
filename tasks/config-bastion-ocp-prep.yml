@@ -50,13 +50,47 @@
         when: workshop_lock == false
           
 
+      #
+      #    Track down offline token, fail if assisted_installer == true and !-exist
+      #
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-prep : hunt for ocm offline token"
+        copy:
+          src:   "{{ item }}" 
+          dest:  "{{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt"
+          mode:  "0644"
+          owner: root
+          group: root
+        ignore_errors: yes
+        with_items:
+          - "../config/ocm-token.txt"
+          - "/root/{{ xtoph_ocp4.ocp.clustername }}-ocm-token.txt"
       
+      - name: "xtoph_ocp4 : config-bastion-ocp-prep : confirm ocm offline token"
+        stat: path="{{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt"
+        register: token_check
+     
+      - block:
+            - debug: 
+                msg:
+                  - "ATTENTION: OFFLINE OCM-TOKEN REQUIRED FOR ASSISTED INSTALL SERVICES"
+                  - "Retrieve offline ocm-token here: https://cloud.redhat.com/openshift/token "
+                  - "Save offline ocm-token here: {{ inventory_dir }}/ocm-token.txt"
+            - fail:  msg="MISSING OCM OFFLINE TOKEN"
+        when: 
+          - xtoph_ocp4.bastion.assisted_installer == true
+          - token_check.stat.exists == false
+
+
+
       #
       #    Track down the pull secret
       #
-      #      if    deploying via the xtoph_deploy, pull_secret may already be deployed
-      #      else  could be in the ./config directory 
-      #      else  this is a manual step user must complete therefore show message and exit
+      #      pull_secret may already be deployed
+      #        OR
+      #      if ocm-token exists we can try to retrieve it from redhat.com
+      #        OR
+      #      this is a manual step user must complete as pre-work
       #
       
       - name: "xtoph_ocp4 : config-bastion-ocp-prep : hunt for pull-secret"
@@ -68,53 +102,78 @@
           group: root
         ignore_errors: yes
         with_items:
-          - "../config/pull-secret.txt" 
+          - "{{ inventory_dir }}/pull-secret.txt" 
           - "/root/{{ xtoph_ocp4.ocp.clustername }}-pull-secret.txt" 
         
       - name: "xtoph_ocp4 : config-bastion-ocp-prep : confirm pull-secret"
         stat: path="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt"
-        register: found_secret
+        register: secret_check
+
+
+      - block:
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-prep : (re)fresh access token using offline token"
+              ansible.builtin.uri:
+                body:
+                  client_id:     "cloud-services"
+                  grant_type:    "refresh_token"
+                  refresh_token: "{{ lookup('file', inventory_dir ~ '/ocm-token.txt') }}"
+                body_format: form-urlencoded
+                method: POST
+                url: "{{ redhat_sso_url }}"
+              register: access_token
+
+            - debug: var=access_token
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-prep : fetch pull-secret from redhat.com"
+              ansible.builtin.uri:
+                follow_redirects: none
+                headers:
+                  Authorization: "Bearer {{ access_token.json.access_token }}"
+                  accept: "application/json"
+                method: POST
+                status_code: 200
+                url: "{{ redhat_ocp_url }}"
+              register: secret_fetch
+
+            - debug: var=secret_fetch
+
+            - copy:
+                content: "{{ secret_fetch.json }}" 
+                dest:    "{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt"
+                mode:    "640"
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-prep : confirm pull-secret again"
+              stat: path="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt"
+              register: secret_check
+
+        vars:
+          redhat_ocp_url: "https://api.openshift.com/api/accounts_mgmt/v1/access_token"
+          redhat_sso_url: "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
+
+        when:
+         - secret_check.stat.exists == false
+         - token_check.stat.exists == true
+
   
       - block:
+            - debug: 
+                msg:
+                  - "ATTENTION: PULL-SECRET REQUIRED FOR OPENSHIFT DEPLOYMENT"
+                  - ""
+                  - "     NOTE: If you create an ocm-token, the pull-secret can get automatically"
+                  - "           pulled from redhat.com, otherwise you need to get it manually"
+                  - ""
+                  - "Retrieve pull-secret here: https://cloud.redhat.com/openshift/token "
+                  - "Save pull-secret here: {{ inventory_dir }}/pull-secret.txt"
+
             - debug: msg="RETRIEVE PULL-SECRET https://cloud.redhat.com/openshift/install/metal/user-provisioned"
             - debug: msg="SAVE PULL-SECRET HERE ./config/pull-secret.txt"
             - fail:  msg="MISSING PULL-SECRET"
-        when: found_secret.stat.exists == false
+        when: secret_check.stat.exists == false
       
 
         
-      #
-      #    Track down offline token ONLY if assisted_installer = true
-      #
-
-      - block:
-
-            - name: "xtoph_ocp4 : config-bastion-ocp-prep : hunt for ocm offline token"
-              copy:
-                src:   "{{ item }}" 
-                dest:  "{{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt"
-                mode:  "0644"
-                owner: root
-                group: root
-              ignore_errors: yes
-              with_items:
-                - "../config/ocm-token.txt"
-                - "/root/{{ xtoph_ocp4.ocp.clustername }}-ocm-token.txt"
-        
-            - name: "xtoph_ocp4 : config-bastion-ocp-prep : confirm ocm offline token"
-              stat: path="{{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt"
-              register: found_secret
-        
-            - block:
-                  - debug: msg="RETRIEVE OCM OFFLINE TOKEN https://cloud.redhat.com/openshift/token "
-                  - debug: msg="SAVE PULL-SECRET HERE ./config/ocm-token.txt"
-                  - fail:  msg="MISSING OCM OFFLINE TOKEN"
-              when: found_secret.stat.exists == false
-
-        when: xtoph_ocp4.bastion.assisted_installer == true
-
-              
-
       #
       #    Install OCP Client software
       #
