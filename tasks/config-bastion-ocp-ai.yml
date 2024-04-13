@@ -23,6 +23,7 @@
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : pip install aicli"
         pip:
           name: aicli
+          version: 99.0.202403121540
           state: present
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : load ocm offline token"

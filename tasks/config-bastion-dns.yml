@@ -73,7 +73,7 @@
 
 
       #
-      #    Ddeploy a /etc/resolv.conf that 
+      #    Deploy a /etc/resolv.conf that 
       #    points to our bastion dns server
       #
  
@@ -85,6 +85,28 @@
           src:   "dns-resolv-conf.j2"
           dest:  "/etc/resolv.conf"
           owner: root
+
+      - name: "deployer-setup : adjust /etc/dnsmasq.conf with except-interface"
+        lineinfile:
+          dest: "/etc/dnsmasq.conf"
+          insertafter: "^#except-interface=.*$"
+          line: "except-interface=virbr0"
+          state: present
+
+      - name: "deployer-setup : adjust /etc/dnsmasq.conf with bind-interfaces"
+        lineinfile:
+          dest: "/etc/dnsmasq.conf"
+          insertafter: "^#bind-interfaces.*$"
+          line: "bind-interfaces"
+          state: present
+
+      - name: "deployer-setup : disable the listen on loopback interface only config"
+        replace:
+          dest: "/etc/dnsmasq.conf"
+          regexp: "^interface=lo"
+          replace: "#interface=lo"
+
+
 
       #
       #    Deploy a standard options, api and wildcard configs
