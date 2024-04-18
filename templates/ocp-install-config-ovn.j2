@@ -7,7 +7,11 @@ compute:
 controlPlane:
   hyperthreading: Enabled   
   name: master 
+{% if xtoph_ocp4.ocp.sno == True %}
+  replicas: 1 
+{% else %}
   replicas: 3 
+{% endif %}
 metadata:
   name: {{ p_clusterName }}
 {% if p_http_proxy != '' %}
@@ -25,5 +29,9 @@ networking:
   - 172.30.0.0/16
 platform:
   none: {} 
+{% if xtoph_ocp4.ocp.sno == True %}
+bootstrapInPlace:
+  installationDisk: {{ hostvars[groups['mySNO'][0]].xtoph_ocp4.rhcos.blk_dev }}
+{% endif %}
 pullSecret: {{ p_pullSecret }}
 sshKey: {{ p_sshKey }}

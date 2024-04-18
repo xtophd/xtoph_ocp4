@@ -29,8 +29,10 @@
       "coreos.inst.ignition_url=http://{{ t_addr}}:{{ t_port }}/ignition?mac=${mac:hexhyp}"
 {% endif %}
       ]
-  },
+  }
 
+{% if xtoph_ocp4.ocp.sno == False %}
+  ,
   "storage": {
     "disks": [{
       "device": "/dev{{ xtoph_ocp4.rhcos.blk_dev }}",
@@ -57,4 +59,5 @@
     }]
   }
 
+{% endif %}
 }

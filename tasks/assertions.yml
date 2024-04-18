@@ -137,3 +137,13 @@
           - xtoph_ocp4.bastion.assisted_installer == True
           - xtoph_ocp4.ocp.sno == True
 
+      - name: "xtoph_ocp4 : config-bastion-assertions : validate provisioner for single node (SNO)"
+        ansible.builtin.assert: 
+          success_msg: 'Provisioner is appropriate for SNO'
+          fail_msg:    'Provisioner cannot be set to upi-pxe for SNO (unverified/unsuccessful mode selected)'
+          that:
+            - xtoph_ocp4.ocp.provisioner is not 'upi-pxe'
+        when:
+          - xtoph_ocp4.bastion.assisted_installer == True
+          - xtoph_ocp4.ocp.sno == True
+

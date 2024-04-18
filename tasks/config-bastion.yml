@@ -67,10 +67,18 @@
     - xtoph_ocp4.bastion.dhcp_pxe == true
     - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
 
+- debug: 
+    msg:
+      - "{{ xtoph_ocp4_subaction }} == '' or {{ xtoph_ocp4_subaction }} == iso "
+      - "{{ xtoph_ocp4.bastion.iso }} == true "
+      - "{{ xtoph_ocp4.ocp.provisioner }} == upi "
+      - "{{ xtoph_ocp4.bastion.assisted_installer }} is undefined or {{ xtoph_ocp4.bastion.assisted_installer }} == false "
+
+
 - include_tasks: "config-bastion-iso.yml"
   when: 
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "iso"
-    - xtoph_ocp4.bastion.iso == true
+#    - xtoph_ocp4.bastion.iso == true
     - xtoph_ocp4.ocp.provisioner == "upi"
     - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
 

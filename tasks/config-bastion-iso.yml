@@ -35,8 +35,6 @@
         shell:
           cmd: |
             if [[ -d "{{ t_tmp }}" ]] ; then rm -rf {{ t_tmp }} ; fi
-
-
     
       - name: "xtoph_ocp4 : config-bastion-iso : create fresh iso work directory for each host"
         file: 
@@ -49,7 +47,8 @@
         shell:
           cmd: |
             xorriso -osirrox on -indev "{{ t_src_iso }}" -extract / "{{ t_tmp_subdir }}"
- 
+        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
+     
       #
       #    NOTE:  because I am using http (not https), 
       #           I need to add "coreos.inst.insecure=yes" 
@@ -69,7 +68,8 @@
               coreos.inst.insecure=yes
               coreos.inst.install_dev={{ t_storage }}
               coreos.inst.ignition_url=http://{{ t_addr }}:{{ t_port }}/ignition?mac={{ t_mac }}
-
+        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
+    
       - name: "xtoph_ocp4 : config-bastion-iso : customize grub configs"
         replace:
           path: "{{ t_tmp_subdir }}/EFI/redhat/grub.cfg"
@@ -83,11 +83,13 @@
               coreos.inst.insecure=yes
               coreos.inst.install_dev={{ t_storage }}
               coreos.inst.ignition_url=http://{{ t_addr }}:{{ t_port }}/ignition?mac={{ t_mac }}
+        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
 
       - name: "xtoph_ocp4 : config-bastion-iso : preserve ISO volume id"
         shell:
           cmd: |
             isoinfo -d -i {{ t_src_iso }} | grep 'Volume id:' | sed -e 's/Volume id: //g'
+        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
         register: isoinfo
 
       - name: "xtoph_ocp4 : config-bastion-iso : for each host generate custom iso image"
@@ -108,6 +110,13 @@
                         -e images/efiboot.img              \
                         -no-emul-boot                      \
                         -o {{ t_dest_iso }} . 
+        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
+
+      - name: "xtoph_ocp4 : config-bastion-iso : copy clean source ISO to SNO node specific iso (UPI will customize it with sno ignition later)"
+        shell:
+          cmd: |
+            cp {{ t_src_iso }} {{ t_dest_iso }}
+        when:  inventory_hostname in xtoph_ocp4._cluster_sno
 
       - name: "xtoph_ocp4 : config-bastion-iso : update iso file permissions"
         file: 
@@ -123,6 +132,9 @@
           cmd: |
             if [[ -d "{{ t_tmp }}" ]] ; then rm -rf "{{ t_tmp }}" ; fi
         when: xtoph_ocp4._cleanup == True
+
+  when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+
 
 
 

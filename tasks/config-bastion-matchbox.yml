@@ -299,6 +299,23 @@
      
  
       
+            - name: "xtoph_ocp4 : config-bastion-matchbox : deploy SNO config"
+              vars:
+                - t_profile:   "sno"
+              template:
+                src:   "{{item.src}}"
+                dest:  "{{item.dest}}"
+                mode:  "644"
+                owner: matchbox
+                group: matchbox
+              with_items:
+                - { src: "matchbox-group.j2",   dest: "/var/lib/matchbox/groups/{{ t_profile }}-{{ t_name }}.json" }
+                - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
+              when: 
+                - inventory_hostname in xtoph_ocp4._cluster_sno
+           
+
+       
             - name: "xtoph_ocp4 : config-bastion-matchbox : deploy master configs"
               vars:
                 - t_profile:   "master"
@@ -330,6 +347,8 @@
                 - { src: "matchbox-profile.j2", dest: "/var/lib/matchbox/profiles/{{ t_profile }}-{{ t_name }}.json" }
               when: 
                 - inventory_hostname in xtoph_ocp4._cluster_workers
+
+
 
         when: xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
       
