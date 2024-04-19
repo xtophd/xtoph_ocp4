@@ -133,21 +133,38 @@
           cmd: |
             chown matchbox.matchbox /var/lib/matchbox/ignition/*
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize SNO ISO image with kernel args for static IP"
-        run_once: false
+      - block:
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : DEBUG: static ip parameters"
+              run_once: false
+              debug:
+                msg:
+                - "NIC Mode     = {{ xtoph_ocp4.rhcos.nic_mode }}" 
+                - "ISO Name     = {{ t_dest_iso }}"
+                - "DNS          = {{ p_dns }}"
+                - "RHCOS Device = {{ p_dev }}"
+                - "RHCOS IP     = {{ p_nic }}"
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize SNO ISO image with kernel args for static IP"
+              run_once: false
+              shell:
+                cmd: |
+                  cd /var/lib/matchbox/assets/
+                  podman run --privileged --pull always --rm \
+                      -v /dev:/dev -v /run/udev:/run/udev -v /var/lib/matchbox/assets:/data \
+                      -w /data quay.io/coreos/coreos-installer:release \
+                      iso kargs modify -a "ip={{ p_nic}}" {{ t_dest_iso }}
+
         vars:
           - t_dest_iso:    "{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
-        shell:
-          cmd: |
-            cd /var/lib/matchbox/assets/
-            podman run --privileged --pull always --rm \
-                -v /dev:/dev -v /run/udev:/run/udev -v /var/lib/matchbox/assets:/data \
-                -w /data quay.io/coreos/coreos-installer:release \
-                iso kargs modify -a "ip={{ xtoph_ocp4.rhcos.nic_dev}}" {{ t_dest_iso }}
+          - p_dns:         "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
+          - p_dev:         "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):dhcp$','\\1') }}"
+          - p_nic:         "{{ h_pubIP  }}::{{ xtoph_ocp4.network.gateway }}:{{ xtoph_ocp4.network.gateway }}:{{ inventory_hostname }}:{{ p_dev }}:none:{{ p_dns }}"
         when:
           - xtoph_ocp4.ocp.sno == true
           - xtoph_ocp4.rhcos.nic_mode == "static"
           - inventory_hostname in xtoph_ocp4._cluster_sno
+
 
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize SNO ISO image with embedded ignition"
         run_once: false
