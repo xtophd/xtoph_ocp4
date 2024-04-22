@@ -161,9 +161,8 @@
           - p_dev:         "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):dhcp$','\\1') }}"
           - p_nic:         "{{ h_pubIP  }}::{{ xtoph_ocp4.network.gateway }}:{{ xtoph_ocp4.network.gateway }}:{{ inventory_hostname }}:{{ p_dev }}:none:{{ p_dns }}"
         when:
-          - xtoph_ocp4.ocp.sno == true
           - xtoph_ocp4.rhcos.nic_mode == "static"
-          - inventory_hostname in xtoph_ocp4._cluster_sno
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
 
 
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize SNO ISO image with embedded ignition"
