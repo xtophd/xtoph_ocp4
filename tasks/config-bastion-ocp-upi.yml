@@ -133,19 +133,18 @@
           cmd: |
             chown matchbox.matchbox /var/lib/matchbox/ignition/*
 
+
+
       - block:
 
-            - name: "xtoph_ocp4 : config-bastion-ocp-upi : DEBUG: static ip parameters"
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : DEBUG: general kernel args"
               run_once: false
               debug:
                 msg:
-                - "NIC Mode     = {{ xtoph_ocp4.rhcos.nic_mode }}" 
-                - "ISO Name     = {{ t_dest_iso }}"
-                - "DNS          = {{ p_dns }}"
-                - "RHCOS Device = {{ p_dev }}"
-                - "RHCOS IP     = {{ p_nic }}"
+                - "ISO Target   = {{ t_dest_iso }}"
+                - "USB Delay    = {{ p_usbdelay }}"
 
-            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize SNO ISO image with kernel args for static IP"
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with general kernel args"
               run_once: false
               shell:
                 cmd: |
@@ -153,15 +152,62 @@
                   podman run --privileged --pull always --rm \
                       -v /dev:/dev -v /run/udev:/run/udev -v /var/lib/matchbox/assets:/data \
                       -w /data quay.io/coreos/coreos-installer:release \
-                      iso kargs modify -a "ip={{ p_nic}}" {{ t_dest_iso }}
+                      iso kargs modify -a "usb-storage.delay_use={{p_usbdelay}}" {{ t_dest_iso }}
+
+        vars:
+          - t_dest_iso:    "{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
+          - p_usbdelay:    "{{ xtoph_ocp4.rhcos.usb_delay }}"
+        when:
+          - xtoph_ocp4.rhcos.nic_mode == "static"
+          - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+
+
+
+      - block:
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : DEBUG: ISO customization network parameters"
+              run_once: false
+              debug:
+                msg:
+                - "ISO Target   = {{ t_dest_iso }}"
+                - "NIC Mode     = {{ xtoph_ocp4.rhcos.nic_mode }}" 
+                - "ISO Name     = {{ t_dest_iso }}"
+                - "DNS          = {{ p_dns }}"
+                - "RHCOS Device = {{ p_dev }}"
+                - "RHCOS DHCP   = {{ p_ip_dhcp }}"
+                - "RHCOS STATIC = {{ p_ip_static }}"
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with kernel args for DHCP IP"
+              run_once: false
+              shell:
+                cmd: |
+                  cd /var/lib/matchbox/assets/
+                  podman run --privileged --pull always --rm \
+                      -v /dev:/dev -v /run/udev:/run/udev -v /var/lib/matchbox/assets:/data \
+                      -w /data quay.io/coreos/coreos-installer:release \
+                      iso kargs modify -a "ip={{ p_ip_dhcp }}" {{ t_dest_iso }}
+              when:
+                - xtoph_ocp4.rhcos.nic_mode != "static"
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with kernel args for STATIC IP"
+              run_once: false
+              shell:
+                cmd: |
+                  cd /var/lib/matchbox/assets/
+                  podman run --privileged --pull always --rm \
+                      -v /dev:/dev -v /run/udev:/run/udev -v /var/lib/matchbox/assets:/data \
+                      -w /data quay.io/coreos/coreos-installer:release \
+                      iso kargs modify -a "ip={{ p_ip_static }}" {{ t_dest_iso }}
+              when:
+                - xtoph_ocp4.rhcos.nic_mode == "static"
 
         vars:
           - t_dest_iso:    "{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
           - p_dns:         "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
           - p_dev:         "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):dhcp$','\\1') }}"
-          - p_nic:         "{{ h_pubIP  }}::{{ xtoph_ocp4.network.gateway }}:{{ xtoph_ocp4.network.gateway }}:{{ inventory_hostname }}:{{ p_dev }}:none:{{ p_dns }}"
+          - p_ip_dhcp:     "{{ p_dev }}:dhcp"
+          - p_ip_static:   "{{ h_pubIP  }}::{{ xtoph_ocp4.network.gateway }}:{{ xtoph_ocp4.network.gateway }}:{{ inventory_hostname }}:{{ p_dev }}:none:{{ p_dns }}"
         when:
-          - xtoph_ocp4.rhcos.nic_mode == "static"
           - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
 
 
@@ -194,13 +240,13 @@
           - "matchbox"
         when: xtoph_ocp4.bastion.matchbox == true
 
+
   #
   #    Only execute tasks if workshop_lock == false
   #
 
   when:
     - workshop_lock == false
-
 
       
 
