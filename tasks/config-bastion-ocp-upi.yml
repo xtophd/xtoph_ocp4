@@ -204,7 +204,8 @@
         vars:
           - t_dest_iso:    "{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
           - p_dns:         "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
-          - p_dev:         "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):dhcp$','\\1') }}"
+#          - p_dev:         "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):dhcp$','\\1') }}"
+          - p_dev:         "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):.*','\\1') }}"
           - p_ip_dhcp:     "{{ p_dev }}:dhcp"
           - p_ip_static:   "{{ h_pubIP  }}::{{ xtoph_ocp4.network.gateway }}:{{ xtoph_ocp4.network.gateway }}:{{ inventory_hostname }}:{{ p_dev }}:none:{{ p_dns }}"
         when:

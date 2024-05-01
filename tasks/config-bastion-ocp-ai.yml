@@ -6,6 +6,12 @@
   block:
 
 
+
+      #
+      #    NOTE: Important source of infoabout AI REST API:
+      #          https://github.com/openshift/assisted-service/blob/902a54d507dc4661d0ca2977114dc8500f52ee05/docs/user-guide/restful-api-guide.md
+      #
+
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : install additional packages"
         yum: name=python3-pip state=installed
 
@@ -44,24 +50,6 @@
         ignore_errors: true
         register: aicli_status
 
-# SOMETHING STARTED TO FAIL / NEED TO TEST ALTERNATE OPTIONS      
-#      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new SNO cluster configuration"
-#        shell:
-#          cmd: |
-#            aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
-#                  create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
-#                  -P sno=true                                                     \
-#                  -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
-#                  -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
-#                  -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
-#                  -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
-#                  -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
-#                  -P network_type="OVNKubernetes"                                 \
-#                  -P vip_dhcp_allocation="false"                                  
-#        when: 
-#          - aicli_status.rc != 0 
-#          - xtoph_ocp4.ocp.sno == true
-
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new SNO cluster configuration"
         shell:
           cmd: |
@@ -93,25 +81,6 @@
           - aicli_status.rc != 0 
           - xtoph_ocp4.ocp.sno == false
 
-#
-# Something has changed in the API, updating an existing config now generates an error
-# Commenting this out for the ime begin
-#
-#      - name: "xtoph_ocp4 : config-bastion-ocp-ai : update existing cluster configuration"
-#        shell:
-#          cmd: |
-#            aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
-#                  update cluster {{ xtoph_ocp4.ocp.clustername }}                 \
-#                  -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
-#                  -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
-#                  -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
-#                  -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
-#                  -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
-#                  -P network_type="OVNKubernetes"                                 \
-#                  -P vip_dhcp_allocation="false"                                  
-#        when: aicli_status.rc == 0 
-#
- 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy nmstate base"
         vars: 
           - t_sshkey: "{{ ssh_key.stdout }}"
@@ -122,10 +91,35 @@
           group: root
           mode: 644
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy nmstate static network configs"
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy per-node STATIC network yaml"
+        run_once: false
+        template:
+          src: "ocp-ai-nmstate-node-network-static.j2"
+          dest: "{{ t_tmpdir }}/node-network-{{ inventory_hostname_short }}.yml"
+          owner: root
+          group: root
+          mode: 644
+        when: 
+          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - xtoph_ocp4.rhcos.nic_mode == 'static'
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy per-node DHCP network yaml"
+        run_once: false
+        template:
+          src: "ocp-ai-nmstate-node-network-dhcp.j2"
+          dest: "{{ t_tmpdir }}/node-network-{{ inventory_hostname_short }}.yml"
+          owner: root
+          group: root
+          mode: 644
+        when: 
+          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - xtoph_ocp4.rhcos.nic_mode != 'static'
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy per-node nmstate network configs"
         run_once: false
         vars:
-          - t_network_yaml: "{{ lookup('template', 'ocp-ai-nmstate-network-yaml.j2') | replace('\n','\\n') }}"
+#          - t_network_yaml: "{{ lookup('template', 'ocp-ai-nmstate-network-yaml.j2') | replace('\n','\\n') }}"
+          - t_network_yaml: "{{ lookup('template', '{{ t_tmpdir }}/node-network-{{ inventory_hostname_short }}.yml') | replace('\n','\\n') }}"
         template:
           src: "ocp-ai-nmstate-static-config.j2"
           dest: "{{ t_tmpdir }}/nmstate-static-config-{{ inventory_hostname_short }}.yml"
@@ -172,11 +166,19 @@
     - t_name:      "{{ inventory_hostname_short }}"
     - t_addr:      "{{ h_pubIP  }}"
     - t_mac:       "{{ xtoph_ocp4.rhcos.nic_mac }}"
-    - t_netdev:    "{{ xtoph_ocp4.rhcos.nic_dev }}"
-    - t_dns:       "{{ xtoph_ocp4.network.nameserver }}"
+#    - t_netdev:    "{{ xtoph_ocp4.rhcos.nic_dev }}"
+    - t_netdev:    "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):.*','\\1') }}"
+
+    - t_dns:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
+    - t_ntp:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.ntp == true else xtoph_ocp4.network.timeserver }}"
+
     - t_prefix:    "{{ xtoph_ocp4.network.prefix }}"
+    - t_netmask:   "{{ xtoph_ocp4.network.netmask }}"
     - t_gateway:   "{{ xtoph_ocp4.network.gateway }}"
 
+    #    t_table_id is NOT related to netmask
+    #    For more info on t_table_id: https://access.redhat.com/solutions/7011711
+    - t_table_id:  "254"
 
 
 #

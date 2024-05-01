@@ -1,0 +1,20 @@
+dns-resolver:
+  config:
+    server:
+    - {{ t_dns }}
+interfaces:
+- name: {{ t_netdev }}
+  ipv4:
+    address:
+    - ip: {{ t_addr }}
+      prefix-length: {{ t_prefix }}
+    dhcp: false
+    enabled: true
+  state: up
+  type: ethernet
+routes:
+  config:
+  - destination: 0.0.0.0/0
+    next-hop-address: {{ t_gateway }}
+    next-hop-interface: {{ t_netdev }}
+    table-id: {{ t_table_id }}
