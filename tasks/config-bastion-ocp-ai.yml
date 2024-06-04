@@ -115,11 +115,28 @@
           - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
           - xtoph_ocp4.rhcos.nic_mode != 'static'
 
+      ##
+      ##   NOTE: lookup plugins can not be delegated, thus we have to fetch a copy
+      ##         of the network config to the local system before using it in a template
+      ##
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : fetch per-node network yaml"
+        run_once: false
+        fetch:
+          dest: "{{ xtoph_ocp4._tmp_dir }}/node-network-{{ inventory_hostname_short }}.yml"
+          src: "{{ t_tmpdir }}/node-network-{{ inventory_hostname_short }}.yml"
+          flat: true
+          owner: root
+          group: root
+          mode: 644
+        when: 
+          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy per-node nmstate network configs"
         run_once: false
         vars:
 #          - t_network_yaml: "{{ lookup('template', 'ocp-ai-nmstate-network-yaml.j2') | replace('\n','\\n') }}"
-          - t_network_yaml: "{{ lookup('template', '{{ t_tmpdir }}/node-network-{{ inventory_hostname_short }}.yml') | replace('\n','\\n') }}"
+          - t_network_yaml: "{{ lookup('template', '{{ xtoph_ocp4._tmp_dir }}/node-network-{{ inventory_hostname_short }}.yml') | replace('\n','\\n') }}"
         template:
           src: "ocp-ai-nmstate-static-config.j2"
           dest: "{{ t_tmpdir }}/nmstate-static-config-{{ inventory_hostname_short }}.yml"
