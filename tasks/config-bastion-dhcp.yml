@@ -48,6 +48,13 @@
       #
 
 
+      - name: "xtoph_ocp4 : config-bastion-dhcp : package installation (RHEL9)"
+        run_once: true
+        yum: name=dhcp-server state=installed
+        when:
+          - ansible_distribution == "RedHat"
+          - ansible_distribution_major_version == "9"
+      
       - name: "xtoph_ocp4 : config-bastion-dhcp : package installation (RHEL8)"
         run_once: true
         yum: name=dhcp-server state=installed
