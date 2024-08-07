@@ -1,3 +1,14 @@
+"4.16" :
+  name:        "rhcos"
+  version:     "4.16"
+  url:         "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.16/4.16.3"
+  initramfs:   "rhcos-4.16.3-x86_64-live-initramfs.x86_64.img"
+  rootfs:      "rhcos-4.16.3-x86_64-live-rootfs.x86_64.img"
+  kernel:      "rhcos-4.16.3-x86_64-live-kernel-x86_64"
+  metal:       "rhcos-4.16.3-x86_64-metal.x86_64.raw.gz"
+  metal4k:     "rhcos-4.16.3-x86_64-metal4k.x86_64.raw.gz"
+  iso:         "rhcos-4.16.3-x86_64-live.x86_64.iso"
+ 
 "4.15" :
   name:        "rhcos"
   version:     "4.15"
