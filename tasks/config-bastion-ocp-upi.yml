@@ -32,12 +32,17 @@
           name: bash-completion
           state: installed
 
+      ##
+      ##    Since moving to the use of podman to adjust ISO kernel parms,
+      ##    we need podman for all UPI based deployments
+      ##
+
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : additional package installation for SNO support"
         yum: 
           name: podman 
           state: installed
-        when: 
-          - xtoph_ocp4.ocp.sno == true
+      ##  when: 
+      ##    - xtoph_ocp4.ocp.sno == true
 
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : configure openshift bash completion"
         shell:
