@@ -27,22 +27,15 @@
         with_items:
           - "{{ xtoph_ocp4.ocp_assets.install_tar }}"
       
-      - name: "xtoph_ocp4 : config-bastion-ocp-upi : additional package installation"
-        yum: 
-          name: bash-completion
-          state: installed
-
-      ##
-      ##    Since moving to the use of podman to adjust ISO kernel parms,
-      ##    we need podman for all UPI based deployments
-      ##
-
-      - name: "xtoph_ocp4 : config-bastion-ocp-upi : additional package installation for SNO support"
+      - name: "xtoph_ocp4 : config-bastion-ocp-upi : install podman to access coreos-installer and customize the ISOs"
         yum: 
           name: podman 
           state: installed
-      ##  when: 
-      ##    - xtoph_ocp4.ocp.sno == true
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-upi : install bash-completion to make life on the cli glorious"
+        yum: 
+          name: bash-completion
+          state: installed
 
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : configure openshift bash completion"
         shell:
@@ -54,9 +47,6 @@
           cmd: |
             if [[ -d "/var/lib/matchbox/ignition/" ]] ; then rm -f /var/lib/matchbox/ignition/* ; fi
   
-
-
-
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : load pull secret"
         shell: cat {{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt
         register: pull_secret
@@ -65,7 +55,7 @@
         shell: cat /root/.ssh/id_rsa.pub
         register: ssh_key
   
-      - name: "xtoph_ocp4 : config-bastion-ocp-upi : deploy install-config.yml using SDN"
+      - name: "xtoph_ocp4 : config-bastion-ocp-upi : deploy install-config.yml using SDN [OCP < 4.9]"
         vars:
           - p_pullSecret:   "{{ pull_secret.stdout |quote }}"
           - p_sshKey:       "{{ ssh_key.stdout |quote }}"
@@ -83,7 +73,7 @@
           mode: 644
         when: xtoph_ocp4.ocp.version is version('4.9',operator='<')
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-upi : deploy install-config.yml using OVN"
+      - name: "xtoph_ocp4 : config-bastion-ocp-upi : deploy install-config.yml using OVN [OCP >= 4.9]"
         vars:
           - p_pullSecret:   "{{ pull_secret.stdout |quote }}"
           - p_sshKey:       "{{ ssh_key.stdout |quote }}"
@@ -124,8 +114,8 @@
         shell:
           cmd: |
             cd {{ xtoph_ocp4.ocp.creds_dir }}
-            mv bootstrap-in-place-for-live-iso.ign iso.ign
-            cp iso.ign /var/lib/matchbox/assets/
+            mv bootstrap-in-place-for-live-iso.ign sno.ign
+            cp sno.ign /var/lib/matchbox/assets/
         when: xtoph_ocp4.ocp.sno == true
 
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : copy ignition files"
@@ -140,80 +130,137 @@
 
 
 
-      - block:
-
-            - name: "xtoph_ocp4 : config-bastion-ocp-upi : DEBUG: general kernel args"
-              run_once: false
-              debug:
-                msg:
-                - "ISO Target   = {{ t_dest_iso }}"
-                - "USB Delay    = {{ p_usbdelay }}"
-
-            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with general kernel args"
-              run_once: false
-              shell:
-                cmd: |
-                  cd /var/lib/matchbox/assets/
-                  podman run --privileged --pull always --rm \
-                      -v /dev:/dev -v /run/udev:/run/udev -v /var/lib/matchbox/assets:/data \
-                      -w /data quay.io/coreos/coreos-installer:release \
-                      iso kargs modify -a "usb-storage.delay_use={{p_usbdelay}}" {{ t_dest_iso }}
-
-        vars:
-          - t_dest_iso:    "{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
-          - p_usbdelay:    "{{ xtoph_ocp4.rhcos.usb_delay }}"
-        when:
-          - xtoph_ocp4.rhcos.nic_mode == "static"
-          - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+      ##
+      ##    ISO CUSTOMIZATION
+      ##
+      ##    2024-08 switching away from using templates (ocp v4.7+) and the iso 
+      ##            utilities formerly used to build the custom ISO images 
+      ##            (config-bastion-iso.yml).  now we use the coreos-installer 
+      ##            and it's options to do customizations incrementally
+      ##
+      ##
+      ##    usb-storage.delay          linux kernel option used to prevent usb storage from
+      ##                               posting before raid cards.  averts issue where BMC virtual
+      ##                               device winds up as /dev/sda (normally the booot/install device)
+      ##
+      ##    coreos.inst                install coreos
+      ##    coreos.inst.insecure       allow http hosted images (don't require https)
+      ##    coreos.inst.install_dev    block device to be used for installation
+      ##    coreos.inst.ignition_url   url which hosts the ignition files
+      ##    
+      ##
+      ##
+      ##
+      ##
+      ##
 
 
-
-      - block:
+      - run_once: false
+        block:
 
             - name: "xtoph_ocp4 : config-bastion-ocp-upi : DEBUG: ISO customization network parameters"
-              run_once: false
               debug:
                 msg:
-                - "ISO Target   = {{ t_dest_iso }}"
-                - "NIC Mode     = {{ xtoph_ocp4.rhcos.nic_mode }}" 
-                - "ISO Name     = {{ t_dest_iso }}"
-                - "DNS          = {{ p_dns }}"
-                - "RHCOS Device = {{ p_dev }}"
-                - "RHCOS DHCP   = {{ p_ip_dhcp }}"
-                - "RHCOS STATIC = {{ p_ip_static }}"
+                - "ISO Target        = {{ t_dest_iso }}"
+                - "USB-STORAGE.DELAY = {{ xtoph_ocp4.rhcos.usb_delay }}"
+                - "NIC Mode          = {{ xtoph_ocp4.rhcos.nic_mode }}" 
+                - "DNS               = {{ t_dns }}"
+                - "RHCOS NET DEV     = {{ t_dev }}"
+                - "RHCOS BLK DEV     = {{ xtoph_ocp4.rhcos.blk_dev }}" 
+                - "RHCOS DHCP        = {{ t_ip_dhcp }}"
+                - "RHCOS STATIC      = {{ t_ip_static }}"
+                - "RHCOS IGN URL     = {{ t_ignition_url }}"
 
-            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with kernel args for DHCP IP"
-              run_once: false
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : clone ISO source to node specific ISO images"
+              throttle: "{{ xtoph_ocp4._throttle | int  }}"
               shell:
                 cmd: |
-                  cd /var/lib/matchbox/assets/
+                  cp "{{t_assets_dir}}/{{ t_src_iso }}" "{{t_assets_dir}}/{{ t_dest_iso }}"
+              when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : update RHCOS ISO image permissions"
+              file:
+                path: "{{t_assets_dir}}/{{ t_dest_iso }}"
+                mode: "0644"
+                owner: matchbox
+                group: matchbox
+                state: file
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with kernels args for USB-STORAGE.DELAY"
+              throttle: "{{ xtoph_ocp4._throttle | int  }}"
+              shell:
+                cmd: |
+                  cd {{t_assets_dir}}
                   podman run --privileged --pull always --rm \
-                      -v /dev:/dev -v /run/udev:/run/udev -v /var/lib/matchbox/assets:/data \
+                      -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
                       -w /data quay.io/coreos/coreos-installer:release \
-                      iso kargs modify -a "ip={{ p_ip_dhcp }}" {{ t_dest_iso }}
+                      iso kargs modify -a "usb-storage.delay_use={{xtoph_ocp4.rhcos.usb_delay}}" {{ t_dest_iso }}
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with kernel args for DHCP IP"
+              throttle: "{{ xtoph_ocp4._throttle | int  }}"
+              shell:
+                cmd: |
+                  cd {{t_assets_dir}}
+                  podman run --privileged --pull always --rm \
+                      -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
+                      -w /data quay.io/coreos/coreos-installer:release \
+                      iso kargs modify -a "ip={{ t_ip_dhcp }}" {{ t_dest_iso }}
               when:
                 - xtoph_ocp4.rhcos.nic_mode != "static"
 
             - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with kernel args for STATIC IP"
-              run_once: false
+              throttle: "{{ xtoph_ocp4._throttle | int  }}"
               shell:
                 cmd: |
-                  cd /var/lib/matchbox/assets/
+                  cd {{t_assets_dir}}
                   podman run --privileged --pull always --rm \
-                      -v /dev:/dev -v /run/udev:/run/udev -v /var/lib/matchbox/assets:/data \
+                      -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
                       -w /data quay.io/coreos/coreos-installer:release \
-                      iso kargs modify -a "ip={{ p_ip_static }}" {{ t_dest_iso }}
+                      iso kargs modify -a "ip={{ t_ip_static }}" {{ t_dest_iso }}
               when:
                 - xtoph_ocp4.rhcos.nic_mode == "static"
 
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with kernel args for BONDED NICs"
+              throttle: "{{ xtoph_ocp4._throttle | int  }}"
+              shell:
+                cmd: |
+                  cd {{t_assets_dir}}
+                  podman run --privileged --pull always --rm \
+                      -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
+                      -w /data quay.io/coreos/coreos-installer:release \
+                      iso kargs modify -a "bond={{xtoph_ocp4.rhcos.bond_dev}}" {{ t_dest_iso }}
+              when:
+                - xtoph_ocp4.rhcos.bond_dev != ""
+
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with coreos.inst options"
+              throttle: "{{ xtoph_ocp4._throttle | int  }}"
+              shell:
+                cmd: |
+                  cd {{t_assets_dir}}
+                  podman run --privileged --pull always --rm \
+                      -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
+                      -w /data quay.io/coreos/coreos-installer:release \
+                      iso kargs modify \
+                          -a "coreos.inst=yes" \
+                          -a "coreos.inst.insecure=yes" \
+                          -a "coreos.inst.install_dev={{xtoph_ocp4.rhcos.blk_dev}}" \
+                          -a "coreos.inst.ignition_url={{t_ignition_url}}" \
+                      {{ t_dest_iso }}
+
         vars:
-          - t_dest_iso:    "{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
-          - p_dns:         "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
-#          - p_dev:         "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):dhcp$','\\1') }}"
-          - p_dev:         "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):.*','\\1') }}"
-          - p_ip_dhcp:     "{{ p_dev }}:dhcp"
-          - p_ip_static:   "{{ h_pubIP  }}::{{ xtoph_ocp4.network.gateway }}:{{ xtoph_ocp4.network.gateway }}:{{ inventory_hostname }}:{{ p_dev }}:none:{{ p_dns }}"
+          - t_assets_dir:    "/var/lib/matchbox/assets"
+          - t_dest_iso:      "{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
+          - t_src_iso:       "{{ xtoph_ocp4.rhcos_assets.iso }}"
+
+          - t_dns:           "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
+          - t_dev:           "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):.*','\\1') }}"
+          - t_ip_dhcp:       "{{ t_dev }}:dhcp"
+          - t_ip_static:     "{{ h_pubIP  }}::{{ xtoph_ocp4.network.gateway }}:{{ xtoph_ocp4.network.gateway }}:{{ inventory_hostname }}:{{ t_dev }}:none:{{ t_dns }}"
+
+          - t_ignition_url: "http://{{xtoph_ocp4.bastion.host_ip}}:{{xtoph_ocp4.bastion.matchbox_port}}/ignition?mac={{xtoph_ocp4.rhcos.nic_mac}}"
+
         when:
+          - xtoph_ocp4.ocp.version is version('4.7',operator='>=')
           - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
 
 
@@ -227,7 +274,7 @@
             podman run --privileged --rm \
                 -v /dev:/dev -v /run/udev:/run/udev -v /var/lib/matchbox/assets:/data \
                 -w /data quay.io/coreos/coreos-installer:release \
-                iso ignition embed -fi iso.ign {{ t_dest_iso }}
+                iso ignition embed -fi sno.ign {{ t_dest_iso }}
         when:
           - xtoph_ocp4.ocp.sno == true
           - inventory_hostname in xtoph_ocp4._cluster_sno
