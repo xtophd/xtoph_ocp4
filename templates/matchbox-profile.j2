@@ -9,16 +9,22 @@
       ],
 
     "args": [
-      "ip={{ t_network }}",
+      "ip={{ t_ip }}",
 {% if t_bond != "" %}
       "bond={{ t_bond }}",
 {% endif %}
       "rd.neednet=1",
       "console=tty0",
       "usb-storage.delay_use={{ t_usbdelay }}",
-      "coreos.inst=yes",
       "coreos.inst.install_dev={{ t_storage }}",
+{% if xtoph_ocp4.ocp.version is version('4.6',operator='<') %}
+      "coreos.inst=yes",
+{% endif %}
+{% if xtoph_ocp4.ocp.version is version('4.3',operator='<') %}
       "coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_bios }}",
+{% elif xtoph_ocp4.ocp.version is version('4.6',operator='<') %}
+      "coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_metal }}",
+{% endif %}
 {% if t_rootfs != "" %}
       "coreos.inst.insecure=yes",
       "coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }}",

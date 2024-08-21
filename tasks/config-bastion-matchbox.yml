@@ -360,7 +360,14 @@
     - t_port:      "{{ xtoph_ocp4.bastion.matchbox_port }}"
     - t_bond:      "{{ xtoph_ocp4.rhcos.bond_dev }}"
     - t_mac:       "{{ xtoph_ocp4.rhcos.nic_mac }}"
-    - t_network:   "{{ xtoph_ocp4.rhcos.nic_dev }}"
+#    - t_network:   "{{ xtoph_ocp4.rhcos.nic_dev }}"
+
+    - t_dns:         "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
+    - t_dev:         "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):.*','\\1') }}"
+    - t_ip_dhcp:     "{{t_dev }}:dhcp"
+    - t_ip_static:   "{{ h_pubIP  }}::{{ xtoph_ocp4.network.gateway }}:{{ xtoph_ocp4.network.gateway }}:{{ inventory_hostname }}:{{ t_dev }}:none:{{ t_dns }}"
+    - t_ip:          "{% if xtoph_ocp4.rhcos.nic_mode == 'dhcp' %}{{ t_ip_dhcp }}{% else %}{{ t_ip_static }}{% endif %}"
+
     - t_storage:   "{{ xtoph_ocp4.rhcos.blk_dev }}"
     - t_usbdelay:  "{{ xtoph_ocp4.rhcos.usb_delay }}"
     - t_loader:    "{{ xtoph_ocp4.rhcos.bootloader }}"

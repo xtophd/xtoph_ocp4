@@ -74,20 +74,6 @@
       - "{{ xtoph_ocp4.ocp.provisioner }} == upi "
       - "{{ xtoph_ocp4.bastion.assisted_installer }} is undefined or {{ xtoph_ocp4.bastion.assisted_installer }} == false "
 
-#
-# 8/8/2024 - attempting to deprecate the custom iso generation in favor of coreos-installer
-#            customizations are handled entirely by config-bastion-ocp-upi.yml
-#            this legacy model needs to stick around to support OCP <= v4.6
-#
-
-- include_tasks: "config-bastion-iso.yml"
-  when: 
-    - xtoph_ocp4.ocp.version is version('4.6',operator='<=')
-    - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "iso"
-#    - xtoph_ocp4.bastion.iso == true
-    - xtoph_ocp4.ocp.provisioner == "upi"
-    - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
-
 - include_tasks: "config-bastion-dhcp.yml"
   when: 
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "dhcp"
@@ -122,6 +108,20 @@
     - xtoph_ocp4_subaction == "" or 
       xtoph_ocp4_subaction == "ocp" or
       xtoph_ocp4_subaction == "ai"
+
+##
+##    8/8/2024 - Attempting to deprecate the custom iso generation in favor of coreos-installer.
+##               Customizations are now handled entirely by config-bastion-ocp-upi.yml
+##               This legacy model needs to stick around to support OCP <= v4.6
+##
+
+- include_tasks: "config-bastion-legacy-iso.yml"
+  when: 
+    - xtoph_ocp4.ocp.version is version('4.6',operator='<=')
+    - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "iso"
+#    - xtoph_ocp4.bastion.iso == true
+    - xtoph_ocp4.ocp.provisioner == "upi"
+    - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
 
 - include_tasks: "config-bastion-ocp-upi.yml"
   when: 

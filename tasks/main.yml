@@ -202,30 +202,38 @@
                   - "Assisted Installer SNO = {{ xtoph_ocp4.ocp.sno }}"
               when: xtoph_ocp4._debug == true
 
-            - block: 
-                  - name: "main.yml: assert availability of bootstrap node from myMasters (Strapless)"
-                    assert:
-                      success_msg: "Strapless UPI bootstrap requirement met (OCP >= 4.11)"
-                      fail_msg:    "Strapless UPI requires 1 available master node (OCP >= 4.11)"
-                      that:
-                        - groups.myMasters | first | default(False)
 
-                  - name: "main.yml: selecting bootstrap node from myMasters (OCP >= 4.11)"
-                    add_host:
-                      name:   "{{ groups.myMasters | first }}"
-                      groups: "myBootstrapFlipFlop"
-              when:
-                - xtoph_ocp4.bastion.assisted_installer == False
-                - xtoph_ocp4.ocp.strapless == True
-                - xtoph_ocp4.ocp.version is version('4.11',operator='>=')
-            
+#
+# 20240820 - disabling the use of masters for the Strapless FlipFlop.  It only worked
+#            for 4.11 - 4.15, and stopped again with 4.16.  I will leave the code for
+#            now in the event that I find a fix
+#
+#            - block: 
+#
+#                  - name: "main.yml: assert availability of bootstrap node from myMasters (Strapless)"
+#                    assert:
+#                      success_msg: "Strapless UPI bootstrap requirement met (OCP >= 4.11)"
+#                      fail_msg:    "Strapless UPI requires 1 available master node (OCP >= 4.11)"
+#                      that:
+#                        - groups.myMasters | first | default(False)
+#
+#                  - name: "main.yml: selecting bootstrap node from myMasters (OCP >= 4.11)"
+#                    add_host:
+#                      name:   "{{ groups.myMasters | first }}"
+#                      groups: "myBootstrapFlipFlop"
+#              when:
+#                - xtoph_ocp4.bastion.assisted_installer == False
+#                - xtoph_ocp4.ocp.strapless == True
+#                - xtoph_ocp4.ocp.version is version('4.11',operator='>=')
+           
             - block:
+
                   - name: "main.yml: assert availability of bootstrap node from myWorkers (Strapless)"
                     assert:
                       success_msg: "Strapless UPI bootstrap requirement met (OCP < 4.11)"
                       fail_msg:    "Strapless UPI requires 1 available worker node (OCP < 4.11)"
                       that:
-                        - groups.myMasters | first | default(False)
+                        - groups.myWorkers | first | default(False)
 
                   - name: "main.yml: selecting bootstrap node from myWorkers (OCP < 4.11)"
                     add_host:
@@ -234,7 +242,9 @@
               when:
                 - xtoph_ocp4.bastion.assisted_installer == False
                 - xtoph_ocp4.ocp.strapless == True
-                - xtoph_ocp4.ocp.version is version('4.11',operator='<')
+
+# 20240820 - by disabling the use of masters for the Strapless FlipFlop, we no longer test for OCP > 4.11
+#                - xtoph_ocp4.ocp.version is version('4.11',operator='<')
             
       - name: "main.yml : save the selected Bootstrap in every host's xtoph_ocp4 dictionary"
         set_fact:

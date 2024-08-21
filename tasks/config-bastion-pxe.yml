@@ -226,52 +226,105 @@
       #
       #
 
+      - block:
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) default grub.cfg when OCP >= 4.9"
-        run_once: true
-        vars:
-          - p_nextsvr:   "{{ xtoph_ocp4.bastion.host_ip }}"
-          - p_http_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
-        template:
-          src:   "pxe-uefi-grub-default.j2"
-          dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/grub.cfg"
-          mode:  "0644"
-          owner: root
-          group: root
+            - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI-GRUB) debug of kernel args [OCP >= 4.9]"
+              debug:
+                var: p_kargs
+  
+            - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI-GRUB) default grub.cfg [OCP >= 4.9]"
+              run_once: true
+              template:
+                src:   "pxe-uefi-grub-default.j2"
+                dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/grub.cfg"
+                mode:  "0644"
+                owner: root
+                group: root
+  
+            - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI-GRUB) machine specific grub.cfg [OCP >= 4.9]"
+              template:
+                src:   "pxe-uefi-grub-machine.j2"
+                dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/grub.cfg-01-{{ t_dash_mac }}"
+                mode:  "0644"
+                owner: root
+                group: root
+
         when:
           - xtoph_ocp4.ocp.version is version('4.9',operator='>=')
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) machine specific grub.cfg when OCP >= 4.9"
         vars:
-          t_tftp_cfgpath: "/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/grub.cfg-01-{{ t_dash_mac }}"
-        template:
-          src:   "pxe-uefi-grub-machine.j2"
-          dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/grub.cfg-01-{{ t_dash_mac }}"
-          mode:  "0644"
-          owner: root
-          group: root
-        when:
-          - xtoph_ocp4.ocp.version is version('4.9',operator='>=')
+          - p_nextsvr:      "{{ xtoph_ocp4.bastion.host_ip }}"
+          - p_http_port:    "{{ xtoph_ocp4.bastion.matchbox_port }}"
+          - p_tftp_cfgpath: "/uefi/rhdoc-{{ xtoph_ocp4.ocp.version }}/grub.cfg-01-{{ t_dash_mac }}" 
+          - p_kargs : >
+                linuxefi (http,{{ t_addr}}:{{ t_port }})/assets/{{ t_kernel }} 
+                ip={{ t_ip }} 
+                {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
+                rd.neednet=1 
+                console=tty0 
+                usb-storage.delay_use={{t_usbdelay}}
+                coreos.inst.insecure=yes
+                coreos.inst.ignition.firstboot 
+                coreos.inst.ignition.platform.id=metal
+                coreos.inst.install_dev={{ t_storage }}
+                coreos.inst.ignition_url=http://{{ t_addr }}:{{ t_port }}/ignition?mac={{ t_mac }}
+                {% if t_rootfs != "" %}
+                coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }} 
+                {% endif %}
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) default ipxe.cfg"
-        run_once: true
+
+
+      - block:
+
+            - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI-iPXE) debug of kernel args"
+              debug:
+                var: p_kargs
+  
+            - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI-iPXE) default ipxe.cfg"
+              run_once: true
+              template:
+                src:   "pxe-uefi-ipxe-default.j2"
+                dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg"
+                mode:  "0644"
+                owner: root
+                group: root
+      
+            - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI-iPXE) machine specific ipxe.cfg"
+              template:
+                src:   "pxe-uefi-ipxe-machine.j2"
+                dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg-{{ t_dash_mac }}"
+                mode:  "0644"
+                owner: root
+                group: root
+
         vars:
-          - p_nextsvr:   "{{ xtoph_ocp4.bastion.host_ip }}"
-          - p_http_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
-        template:
-          src:   "pxe-uefi-ipxe-default.j2"
-          dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg"
-          mode:  "0644"
-          owner: root
-          group: root
+          - p_nextsvr:      "{{ xtoph_ocp4.bastion.host_ip }}"
+          - p_http_port:    "{{ xtoph_ocp4.bastion.matchbox_port }}"
+          - p_kargs : >
+                boot vmlinuz 
+                boot=live 
+                initrd=initrd.img 
+                nomodeset
+                ip={{ t_ip }} 
+                {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
+                rd.neednet=1 
+                console=tty0 
+                usb-storage.delay_use={{t_usbdelay}}
+                coreos.inst.insecure=yes
+                coreos.inst.ignition.firstboot 
+                coreos.inst.ignition.platform.id=metal
+                coreos.inst.install_dev={{ t_storage }}
+                coreos.inst.ignition_url=http://{{ t_addr }}:{{ t_port }}/ignition?mac={{ t_mac }}
+                {% if xtoph_ocp4.ocp.version is version('4.6',operator='<') %} coreos.inst=yes {% endif %}
+                {% if xtoph_ocp4.ocp.version is version('4.3',operator='<') %}
+                coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_uefi }}
+                {% else %}
+                coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_metal }}
+                {% endif %}
+                {% if t_rootfs != "" %} 
+                coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }} 
+                {% endif %}
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : (UEFI) machine specific ipxe.cfg"
-        template:
-          src:   "pxe-uefi-ipxe-machine.j2"
-          dest:  "/var/lib/tftpboot/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg-{{ t_dash_mac }}"
-          mode:  "0644"
-          owner: root
-          group: root
 
 
 
@@ -279,26 +332,57 @@
       ##    PXE->iPXE setup for BIOS based deployments
       ##
 
+      - block:
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : (BIOS) default ipxe.cfg"
-        run_once: true
+            - name: "xtoph_ocp4 : config-bastion-pxe : (BIOS) debug of kernel args"
+              debug:
+                var: p_kargs
+  
+            - name: "xtoph_ocp4 : config-bastion-pxe : (BIOS) default ipxe.cfg"
+              run_once: true
+              template:
+                src:   "pxe-bios-ipxe-default.j2"
+                dest:  "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg"
+                mode:  "0644"
+                owner: root
+                group: root
+      
+            - name: "xtoph_ocp4 : config-bastion-pxe : (BIOS) machine specific ipxe.cfg"
+              template:
+                src:   "pxe-bios-ipxe-machine.j2"
+                dest:  "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg-{{ t_dash_mac }}"
+                mode:  "0644"
+                owner: root
+                group: root
+
         vars:
-          - p_nextsvr:   "{{ xtoph_ocp4.bastion.host_ip }}"
-          - p_http_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"
-        template:
-          src:   "pxe-bios-ipxe-default.j2"
-          dest:  "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg"
-          mode:  "0644"
-          owner: root
-          group: root
+          - p_nextsvr:      "{{ xtoph_ocp4.bastion.host_ip }}"
+          - p_http_port:    "{{ xtoph_ocp4.bastion.matchbox_port }}"
+          - p_kargs : >
+                boot vmlinuz 
+                boot=live 
+                initrd=initrd.img 
+                nomodeset
+                ip={{ t_ip }} 
+                {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
+                usb-storage.delay_use={{t_usbdelay}}
+                rd.neednet=1 
+                console=tty0 
+                coreos.inst.insecure=yes
+                coreos.inst.ignition.firstboot 
+                coreos.inst.ignition.platform.id=metal
+                coreos.inst.install_dev={{ t_storage }}
+                coreos.inst.ignition_url=http://{{ t_addr }}:{{ t_port }}/ignition?mac={{ t_mac }}
+                {% if xtoph_ocp4.ocp.version is version('4.6',operator='<') %} coreos.inst=yes {% endif %}
+                {% if xtoph_ocp4.ocp.version is version('4.3',operator='<') %}
+                coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_bios }}
+                {% else %}
+                coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_metal }}
+                {% endif %}
+                {% if t_rootfs != "" %} 
+                coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }} 
+                {% endif %}
 
-      - name: "xtoph_ocp4 : config-bastion-pxe : (BIOS) machine specific ipxe.cfg"
-        template:
-          src:   "pxe-bios-ipxe-machine.j2"
-          dest:  "/var/lib/tftpboot/bios/rhcos-{{ xtoph_ocp4.ocp.version }}/ipxe.cfg-{{ t_dash_mac }}"
-          mode:  "0644"
-          owner: root
-          group: root
 
 
       ##
@@ -346,7 +430,14 @@
     - t_port:        "{{ xtoph_ocp4.bastion.matchbox_port }}"
     - t_clustername: "{{ xtoph_ocp4.ocp.clustername }}"
     - t_bond:        "{{ xtoph_ocp4.rhcos.bond_dev }}"
-    - t_network:     "{{ xtoph_ocp4.rhcos.nic_dev }}"
+#    - t_network:     "{{ xtoph_ocp4.rhcos.nic_dev }}"
+
+    - t_dns:         "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
+    - t_dev:         "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):.*','\\1') }}"
+    - t_ip_dhcp:     "{{t_dev }}:dhcp"
+    - t_ip_static:   "{{ h_pubIP  }}::{{ xtoph_ocp4.network.gateway }}:{{ xtoph_ocp4.network.gateway }}:{{ inventory_hostname }}:{{ t_dev }}:none:{{ t_dns }}"
+    - t_ip:          "{% if xtoph_ocp4.rhcos.nic_mode == 'dhcp' %}{{ t_ip_dhcp }}{% else %}{{ t_ip_static }}{% endif %}"
+
     - t_storage:     "{{ xtoph_ocp4.rhcos.blk_dev }}"
     - t_usbdelay:    "{{ xtoph_ocp4.rhcos.usb_delay }}"
     - t_loader:      "{{ xtoph_ocp4.rhcos.bootloader }}"

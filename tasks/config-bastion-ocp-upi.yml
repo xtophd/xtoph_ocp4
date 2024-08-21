@@ -32,6 +32,14 @@
           name: podman 
           state: installed
 
+      - name: "xtoph_ocp4 : config-bastion-ocp-upi : pull fresh copy of coreos-installer:release"
+        throttle: "{{ xtoph_ocp4._throttle | int  }}"
+        shell:
+          cmd: |
+            podman pull quay.io/coreos/coreos-installer:release 
+        retries: 5
+        delay: 3
+
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : install bash-completion to make life on the cli glorious"
         yum: 
           name: bash-completion
@@ -191,7 +199,7 @@
               shell:
                 cmd: |
                   cd {{t_assets_dir}}
-                  podman run --privileged --pull always --rm \
+                  podman run --privileged --rm \
                       -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
                       -w /data quay.io/coreos/coreos-installer:release \
                       iso kargs modify -a "usb-storage.delay_use={{xtoph_ocp4.rhcos.usb_delay}}" {{ t_dest_iso }}
@@ -201,7 +209,7 @@
               shell:
                 cmd: |
                   cd {{t_assets_dir}}
-                  podman run --privileged --pull always --rm \
+                  podman run --privileged --rm \
                       -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
                       -w /data quay.io/coreos/coreos-installer:release \
                       iso kargs modify -a "ip={{ t_ip_dhcp }}" {{ t_dest_iso }}
@@ -213,7 +221,7 @@
               shell:
                 cmd: |
                   cd {{t_assets_dir}}
-                  podman run --privileged --pull always --rm \
+                  podman run --privileged --rm \
                       -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
                       -w /data quay.io/coreos/coreos-installer:release \
                       iso kargs modify -a "ip={{ t_ip_static }}" {{ t_dest_iso }}
@@ -225,27 +233,34 @@
               shell:
                 cmd: |
                   cd {{t_assets_dir}}
-                  podman run --privileged --pull always --rm \
+                  podman run --privileged --rm \
                       -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
                       -w /data quay.io/coreos/coreos-installer:release \
                       iso kargs modify -a "bond={{xtoph_ocp4.rhcos.bond_dev}}" {{ t_dest_iso }}
               when:
                 - xtoph_ocp4.rhcos.bond_dev != ""
 
-            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with coreos.inst options"
-              throttle: "{{ xtoph_ocp4._throttle | int  }}"
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image [coreos.inst defaults]"
               shell:
                 cmd: |
                   cd {{t_assets_dir}}
-                  podman run --privileged --pull always --rm \
+                  podman run --privileged --rm \
                       -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
                       -w /data quay.io/coreos/coreos-installer:release \
                       iso kargs modify \
-                          -a "coreos.inst=yes" \
-                          -a "coreos.inst.insecure=yes" \
-                          -a "coreos.inst.install_dev={{xtoph_ocp4.rhcos.blk_dev}}" \
-                          -a "coreos.inst.ignition_url={{t_ignition_url}}" \
+                        -a "coreos.inst.insecure=yes" \
+                        -a "coreos.inst.install_dev={{xtoph_ocp4.rhcos.blk_dev}}" \
+                        -a "coreos.inst.ignition_url={{t_ignition_url}}" \
                       {{ t_dest_iso }}
+
+            ##
+            ##    We don't have to worry about special options for any 
+            ##    versions < 4.7 (those are handled by config-bastion-legacy-iso)
+            ##    
+            ##      example: v4.2 requires a different image name for bios v. eufi systems  
+            ##               v4.2-4.6 require image_url
+            ##               v4.2-4.6 require coreos.inst=yes
+            ##    
 
         vars:
           - t_assets_dir:    "/var/lib/matchbox/assets"

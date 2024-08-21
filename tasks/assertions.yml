@@ -77,7 +77,7 @@
           - xtoph_ocp4.bastion.assisted_installer == False
           - xtoph_ocp4.ocp.strapless == False
 
-      - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for strapless UPI (OCP < 4.11)"
+      - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for strapless UPI (OCP >= 4.3 and < 4.11)"
         ansible.builtin.assert: 
           success_msg: 'Node Count Is Sufficient'
           fail_msg:    'Node Count INSUFFICIENT: strapless UPI install requires 3 masters and 1+ workers'
@@ -90,22 +90,24 @@
         when:
           - xtoph_ocp4.bastion.assisted_installer == False
           - xtoph_ocp4.ocp.strapless == True
-          - xtoph_ocp4.ocp.version is version('4.11',operator='<')
+#          - xtoph_ocp4.ocp.version is version('4.11',operator='<')
+          - xtoph_ocp4.ocp.version is version('4.3',operator='>=')
 
-      - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for strapless UPI (OCP >= 4.11)"
-        ansible.builtin.assert: 
-          success_msg: 'Node Count Is Sufficient'
-          fail_msg:    'Node Count INSUFFICIENT: strapless UPI install requires 3 masters and 0+ workers'
-          that:
-            - xtoph_ocp4._cluster_bootstrap | length == 0
-            - xtoph_ocp4._cluster_bootstrap_flipflop | length == 1
-            - xtoph_ocp4._cluster_masters | length == 3
-            - xtoph_ocp4._cluster_workers | length >= 0
-            - xtoph_ocp4._cluster_sno | length == 0
-        when:
-          - xtoph_ocp4.bastion.assisted_installer == False
-          - xtoph_ocp4.ocp.strapless == True
-          - xtoph_ocp4.ocp.version is version('4.11',operator='>=')
+# 20240820 - master based fliflop is disabled and pending deprecation.
+#      - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for strapless UPI (OCP >= 4.11)"
+#        ansible.builtin.assert: 
+#          success_msg: 'Node Count Is Sufficient'
+#          fail_msg:    'Node Count INSUFFICIENT: strapless UPI install requires 3 masters and 0+ workers'
+#          that:
+#            - xtoph_ocp4._cluster_bootstrap | length == 0
+#            - xtoph_ocp4._cluster_bootstrap_flipflop | length == 1
+#            - xtoph_ocp4._cluster_masters | length == 3
+#            - xtoph_ocp4._cluster_workers | length >= 0
+#            - xtoph_ocp4._cluster_sno | length == 0
+#        when:
+#          - xtoph_ocp4.bastion.assisted_installer == False
+#          - xtoph_ocp4.ocp.strapless == True
+#          - xtoph_ocp4.ocp.version is version('4.11',operator='>=')
             
       - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for assisted installer (AI)"
         ansible.builtin.assert: 

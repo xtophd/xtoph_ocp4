@@ -12,21 +12,7 @@ set timeout=15
 menuentry 'Install Red Hat CoreOS {{ xtoph_ocp4.ocp.version }} [{{ t_name }}]' {
 
     echo "Loading kernel"
-    linuxefi (http,{{ t_addr}}:{{ t_port }})/assets/{{ t_kernel }} \
-             ip={{ t_network }} \
-{% if t_bond != "" %}
-             bond={{ t_bond }} \
-{% endif %}
-             rd.neednet=1 \
-             console=tty0 \
-             usb-storage.delay_use={{ t_usbdelay }} \
-             coreos.inst.install_dev={{ t_storage }} \
-{% if t_rootfs != "" %}
-             coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }} \
-{% endif %}
-             coreos.inst.ignition_url=http://{{ t_addr}}:{{ t_port }}/ignition?mac={{ t_mac }} \
-             coreos.inst.ignition.firstboot \
-             coreos.inst.ignition.platform.id=metal
+    {{ p_kargs }}
 
     echo "Loading initrd"
     initrdefi  (http,{{ t_addr}}:{{ t_port }})/assets/{{ t_initramfs }}
@@ -37,18 +23,7 @@ menuentry 'Install Red Hat CoreOS {{ xtoph_ocp4.ocp.version }} [{{ t_name }}]' {
 menuentry 'Debug (Shell) Red Hat CoreOS {{ xtoph_ocp4.ocp.version }} [{{ t_name }}]' {
 
     echo "Loading kernel"
-    linuxefi (http,{{ t_addr}}:{{ t_port }})/assets/{{ t_kernel }} \
-             ip={{ t_network }} \
-{% if t_bond != "" %}
-             bond={{ t_bond }} \
-{% endif %}
-             rd.neednet=1 \
-             console=tty0 \
-             usb-storage.delay_use={{ t_usbdelay }} \
-{% if t_rootfs != "" %}
-             coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }} \
-{% endif %}
-             single 
+    {{ p_kargs }} single
 
     echo "Loading initrd"
     initrdefi  (http,{{ t_addr}}:{{ t_port }})/assets/{{ t_initramfs }}
@@ -56,10 +31,10 @@ menuentry 'Debug (Shell) Red Hat CoreOS {{ xtoph_ocp4.ocp.version }} [{{ t_name 
     echo "Starting installation..."
 }
 
-menuentry 'Reload config {{ t_tftp_cfgpath }} [{{ t_name }}]' {
+menuentry 'Reload config {{ p_tftp_cfgpath }} [{{ t_name }}]' {
     insmod net
     insmod http
     echo 'Loading Linux ...'
-    configfile {{ t_tftp_cfgpath }}
+    configfile {{ p_tftp_cfgpath }}
 }
 

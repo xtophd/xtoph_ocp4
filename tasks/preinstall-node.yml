@@ -167,6 +167,22 @@
 
       - block:
 
+            - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) :  (NEW) launch async openshift-install wait-for"
+              run_once: true
+              delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+              async: 3600
+              poll: 0
+              shell:
+                cmd: |
+                  cd {{xtoph_ocp4.ocp.creds_dir}}
+                  touch I_was_here.txt
+                  openshift-install wait-for bootstrap-complete 
+
+            #
+            #  This is an older test I used to determine when the bootstrap was done
+            #  it worked sufficiently until 4.16
+            #
+
             - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) :  wait for config-service shutdown on bootstrap"
               wait_for:
                 host: "{{ hostvars[item]['h_pubIP'] }}"
@@ -178,13 +194,45 @@
                 timeout: 1800
               loop: "{{ xtoph_ocp4._cluster_bootstrap_flipflop }}"
 
+            #
+            #  Another test that's closer the completion of bootstrap activity
+            #  Added while I was trying to solve problems with 4.16
+            #
+
+            - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) :  wait for api-service shutdown on bootstrap"
+              wait_for:
+                host: "{{ hostvars[item]['h_pubIP'] }}"
+                connect_timeout: 5
+                delay: 3
+                port: 6443
+                sleep: 5
+                state: stopped
+                timeout: 1800
+              loop: "{{ xtoph_ocp4._cluster_bootstrap_flipflop }}"
+
+            #
+            #  Resorting to openshift-install tool to detect bootstrap completion and report status
+            #  to the log.  NOTE that the 'wait-for' action was forked off a few tasks above.
+            #
+
+            - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) :  (NEW) wait for 'Bootstrap status: complete' in .openshift_install.log"
+              run_once: true
+              delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+              wait_for:
+                path: "{{xtoph_ocp4.ocp.creds_dir}}/.openshift_install.log"
+                search_regex: "Bootstrap status: complete"
+                sleep: 5
+                timeout: 1800
+
             - name: "xtoph_ocp4 : preistall-node (bootstrap-flop) : issue graceful shutdown to bootstrap"
+              run_once: true
               delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
               shell:
                 cmd: |
                   ssh core@{{ inventory_hostname }} sudo systemctl -f poweroff
 
             - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) : wait for OCP node systemd port stopped"
+              run_once: true
               wait_for:
                 host: "{{ inventory_hostname }}"
                 connect_timeout: 3
@@ -217,10 +265,50 @@
                 - inventory_hostname in xtoph_ocp4._cluster_masters
 
             - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) : enable and restart matchbox service"
+              run_once: true
               service: 
                 name: "matchbox" 
                 state: restarted 
                 enabled: yes 
+
+            ##
+            ## it appears we need to remove the bootstrap from the
+            ## etcd member list to free up the spot which the rebuilt master will take over
+            ##
+            ## Starting in 4.16, without cleaning up etcd the cluster will not complete loading of cluster-operators
+            ##
+            ##
+            ## Summary: 
+            ##     oc rsh -n openshift-etcd etcd-master2.ocpdemo10g.lab.linuxsoup.com
+            ##     etcdctl member list | grep <get the id>
+            ##     etcdctl member remove <id>
+            ##
+            ## steps to do so are located here: https://access.redhat.com/solutions/5498971
+            ##
+            ## EXAMPLE: 
+            ##          [root@bastion ~]# oc get nodes
+            ##          NAME                                   STATUS   ROLES                         AGE   VERSION
+            ##          master2.ocpdemo10g.lab.linuxsoup.com   Ready    control-plane,master,worker   15m   v1.28.8+8974577
+            ##          master3.ocpdemo10g.lab.linuxsoup.com   Ready    control-plane,master,worker   15m   v1.28.8+8974577
+            ##          [root@bastion ~]# oc get pods -A | grep etcd
+            ##          openshift-etcd-operator                            etcd-operator-55fb59f9cf-b2fvj                                        1/1     Running            2 (29s ago)     14m
+            ##          openshift-etcd                                     etcd-guard-master2.ocpdemo10g.lab.linuxsoup.com                       1/1     Running            0               9m54s
+            ##          openshift-etcd                                     etcd-guard-master3.ocpdemo10g.lab.linuxsoup.com                       1/1     Running            0               6m43s
+            ##          openshift-etcd                                     etcd-master2.ocpdemo10g.lab.linuxsoup.com                             4/4     Running            0               11s
+            ##          openshift-etcd                                     etcd-master3.ocpdemo10g.lab.linuxsoup.com                             4/4     Running            0               6m49s
+            ##          openshift-etcd                                     installer-1-master2.ocpdemo10g.lab.linuxsoup.com                      0/1     Completed          0               10m
+            ##          openshift-etcd                                     installer-3-master3.ocpdemo10g.lab.linuxsoup.com                      0/1     Completed          0               7m47s
+            ##          openshift-etcd                                     installer-6-master2.ocpdemo10g.lab.linuxsoup.com                      0/1     Completed          0               4m21s
+            ##          [root@bastion ~]# oc rsh -n openshift-etcd etcd-master2.ocpdemo10g.lab.linuxsoup.com
+            ##          sh-5.1# etcdctl member list
+            ##          14181bed13b89d5e, started, etcd-bootstrap, https://192.168.100.82:2380, https://192.168.100.82:2379, false
+            ##          2cf0879bb08985a1, started, master3.ocpdemo10g.lab.linuxsoup.com, https://192.168.100.84:2380, https://192.168.100.84:2379, false
+            ##          81f85a00e83e89a5, started, master2.ocpdemo10g.lab.linuxsoup.com, https://192.168.100.83:2380, https://192.168.100.83:2379, false
+            ##          sh-5.1# etcdctl member remove 14181bed13b89d5e
+            ##          Member 14181bed13b89d5e removed from cluster 3b77626e9fed89a6
+            ##          sh-5.1#
+            ##
+
 
         when:
           - inventory_hostname in xtoph_ocp4._cluster_bootstrap_flipflop
