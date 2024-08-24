@@ -13,50 +13,81 @@
 - delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
   block:
 
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : package installation"
-        run_once: true
-        yum: name=genisoimage,xorriso state=installed
+      #
+      #    NOTE:  RHEL 9 deprecated the genisoimage package and along with it
+      #           the isoinfo utility.  So this command is no longer available
+      #           to fetch an ISO image's volume id:
+      #
+      #             isoinfo -d -i {{ t_src_iso }} | grep 'Volume id:' | sed -e 's/Volume id: //g'
+      #
+      #           Instead, we will use the file command which appears to work for our needs
+      #
+      #             file -b {{ t_src_iso }} | egrep -o "rhcos[-._[:alnum:]]+"
+      #
 
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : clean-up tmp directory {{ t_tmp }}"
-        run_once: true
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : package installation"
+        throttle: 1
+        yum: 
+          name: xorriso 
+          state: installed
+
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : clean-up tmp directory {{ t_tmp }}"
+        throttle: 1
         shell:
           cmd: |
             if [[ -d "{{ t_tmp }}" ]] ; then rm -rf {{ t_tmp }} ; fi
     
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : create fresh iso work directory for each host"
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : create fresh iso work directory for each host"
         file: 
           path="{{ t_tmp_subdir }}" 
           mode="0755" 
           state=directory
     
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : clone ISO source to temp workspace"
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : clone ISO source to temp workspace"
         throttle: "{{ xtoph_ocp4._throttle | int  }}"
         shell:
           cmd: |
             xorriso -osirrox on -indev "{{ t_src_iso }}" -extract / "{{ t_tmp_subdir }}"
-        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
      
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : preserve ISO volume id"
+        shell:
+          cmd: |
+            file -b {{ t_src_iso }} | egrep -o "rhcos[-._[:alnum:]]+"
+        register: isoinfo
+
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : DEBUG: ISO customization parameters"
+        debug:
+          msg:
+          - "ISO Target        = {{ t_dest_iso }}"
+          - "ISO LABEL ID      = {{ isoinfo.stdout }}"
+          - "USB-STORAGE.DELAY = {{ xtoph_ocp4.rhcos.usb_delay }}"
+          - "NIC Mode          = {{ xtoph_ocp4.rhcos.nic_mode }}"
+          - "DNS               = {{ t_dns }}"
+          - "RHCOS NET DEV     = {{ t_dev }}"
+          - "RHCOS BLK DEV     = {{ xtoph_ocp4.rhcos.blk_dev }}"
+          - "RHCOS DHCP        = {{ t_ip_dhcp }}"
+          - "RHCOS STATIC      = {{ t_ip_static }}"
+          - "RHCOS IGN URL     = {{ t_ignition_url }}"
+
       #
       #    NOTE:  because I am using http (not https), 
       #           I need to add "coreos.inst.insecure=yes" 
       #           to my list of kernel options
       #
 
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : ISOLINUX default adjustment"
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : ISOLINUX default adjustment"
         replace:
           path: "{{ t_tmp_subdir }}/isolinux/isolinux.cfg"
           regexp: '^default.*$'
           replace: 'default linux'
-        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
  
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : ISOLINUX timeout adjustment"
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : ISOLINUX timeout adjustment"
         replace:
           path: "{{ t_tmp_subdir }}/isolinux/isolinux.cfg"
           regexp: '^timeout\s+.*$'
           replace: 'timeout 15'
-        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
     
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : ISOLINUX kargs customizations"
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : ISOLINUX kargs customizations"
         replace:
           path: "{{ t_tmp_subdir }}/isolinux/isolinux.cfg"
           regexp: '(\s+)append(\s+.*)?$'
@@ -65,9 +96,6 @@
               usb-storage.delay_use={{t_usbdelay}} 
               ip={{ t_ip }}
               {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
-              {% if xtoph_ocp4.ocp.version is version('4.6',operator='<') %}
-              coreos.inst=yes
-              {% endif %}
               {% if xtoph_ocp4.ocp.version is version('4.3',operator='<') %}
               coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_bios }}
               {% elif xtoph_ocp4.ocp.version is version('4.6',operator='<') %}
@@ -75,18 +103,15 @@
               {% endif %}
               coreos.inst.insecure=yes
               coreos.inst.install_dev={{ t_storage }}
-              coreos.inst.ignition_url=http://{{ t_addr }}:{{ t_port }}/ignition?mac={{ t_mac }}
-        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
-   
+              coreos.inst.ignition_url={{ t_ignition_url }}
 
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : GRUB timeout adjustment"
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : GRUB timeout adjustment"
         replace:
           path: "{{ t_tmp_subdir }}/EFI/redhat/grub.cfg"
           regexp: '^set timeout=.*$'
           replace: 'set timeout=15'
-        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
 
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : GRUB kargs customizations"
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : GRUB kargs customizations"
         replace:
           path: "{{ t_tmp_subdir }}/EFI/redhat/grub.cfg"
           regexp: '(\s+)linux(\s+.*)?$'
@@ -95,9 +120,6 @@
               usb-storage.delay_use={{t_usbdelay}} 
               ip={{ t_ip }}
               {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
-              {% if xtoph_ocp4.ocp.version is version('4.6',operator='<') %}
-              coreos.inst=yes
-              {% endif %}
               {% if xtoph_ocp4.ocp.version is version('4.3',operator='<') %}
               coreos.inst.image_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_uefi }}
               {% elif xtoph_ocp4.ocp.version is version('4.6',operator='<') %}
@@ -105,17 +127,9 @@
               {% endif %}
               coreos.inst.insecure=yes
               coreos.inst.install_dev={{ t_storage }}
-              coreos.inst.ignition_url=http://{{ t_addr }}:{{ t_port }}/ignition?mac={{ t_mac }}
-        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
+              coreos.inst.ignition_url={{ t_ignition_url }}
 
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : preserve ISO volume id"
-        shell:
-          cmd: |
-            isoinfo -d -i {{ t_src_iso }} | grep 'Volume id:' | sed -e 's/Volume id: //g'
-        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
-        register: isoinfo
-
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : for each host generate custom iso image"
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : for each host generate custom iso image"
         throttle: "{{ xtoph_ocp4._throttle | int  }}"
         shell:
           cmd: |
@@ -133,9 +147,8 @@
                         -e images/efiboot.img              \
                         -no-emul-boot                      \
                         -o {{ t_dest_iso }} . 
-        when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers
 
-      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : update iso file permissions"
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : update iso file permissions"
         file: 
           path: "{{ t_dest_iso }}"
           mode: "0644" 
@@ -143,18 +156,14 @@
           group: matchbox
           state: file 
 
-#      - name: "xtoph_ocp4 : config-bastion-upi-legacy-iso : clean-up temp directory {{ t_tmp }}"
-#        run_once: true
-#        shell:
-#          cmd: |
-#            if [[ -d "{{ t_tmp }}" ]] ; then rm -rf "{{ t_tmp }}" ; fi
-#        when: xtoph_ocp4._cleanup == True
+      - name: "xtoph_ocp4 : config-bastion-legacy-iso : clean-up temp directory {{ t_tmp }}"
+        run_once: true
+        shell:
+          cmd: |
+            if [[ -d "{{ t_tmp }}" ]] ; then rm -rf "{{ t_tmp }}" ; fi
+        when: xtoph_ocp4._cleanup == True
 
   when:  inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
-
-
-
-
 
   vars:
     - t_tmp:         "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/iso"
@@ -175,7 +184,8 @@
     - t_bios:        "{{ xtoph_ocp4.rhcos_assets.bios    | default('') }}"
     - t_uefi:        "{{ xtoph_ocp4.rhcos_assets.uefi    | default('') }}"
     - t_metal:       "{{ xtoph_ocp4.rhcos_assets.metal   | default('') }}"
-    
+
+    - t_ignition_url: "http://{{xtoph_ocp4.bastion.host_ip}}:{{xtoph_ocp4.bastion.matchbox_port}}/ignition?mac={{xtoph_ocp4.rhcos.nic_mac}}"
 
     - t_storage:     "{{ xtoph_ocp4.rhcos.blk_dev }}"
     - t_usbdelay:    "{{ xtoph_ocp4.rhcos.usb_delay }}"
