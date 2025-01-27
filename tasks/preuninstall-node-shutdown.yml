@@ -18,6 +18,20 @@
         register: ocm_token
         when:  
           - token_test.stat.exists
+      #
+      #    Proceed with node shutdown if it is up, and wait
+      #
+
+      - name: "xtoph_ocp4 : preunistall-node-shutdown : test if bastion node is accessible"
+        wait_for:
+          host: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+          connect_timeout: 5
+          port: 22
+          sleep: 1
+          state: started
+          timeout: 10
+        register: bastion_status
+        ignore_errors: yes
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : delete cluster configuration (ignore error if it does not)"
         delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
@@ -28,6 +42,7 @@
         ignore_errors: true
         when: 
           - token_test.stat.exists
+          - bastion.status is not failed
 
   when:
     - xtoph_ocp4.bastion.assisted_installer == true
