@@ -1,4 +1,4 @@
-pool {{ p_timeserver }} iburst 
+server {{ p_timeserver }} iburst 
 driftfile /var/lib/chrony/drift
 makestep 1.0 3
 rtcsync
