@@ -31,11 +31,22 @@ else
 fi
 
 
-
-exercise_msg  "Check nodes: /etc/resolv.conf"
-
+exercise_msg  "Check /etc/resolv.conf on each node"
 for i in `oc get nodes -o custom-columns="Node Name:.metadata.name" --no-headers` ; do
-    echo "$i: "
+    echo "## $i "
     ssh core@$i "grep -v -E '^#|^$' /etc/chrony.conf | awk '{ print \"  \" , \$0 }' "
 done
 
+
+exercise_msg  "Print date & check daemon"
+for i in `oc get nodes -o custom-columns="Node Name:.metadata.name" --no-headers` ; do
+    echo "## $i "
+    ssh core@$i "date; sudo -i systemctl status chronyd" 
+done
+
+
+exercise_msg  "Run chrony client tests"
+for i in `oc get nodes -o custom-columns="Node Name:.metadata.name" --no-headers` ; do
+    echo "## $i "
+    ssh core@$i 'for j in sources sourcestats tracking; do echo "##   chronyc $j" ; sudo chronyc $j; done'
+done

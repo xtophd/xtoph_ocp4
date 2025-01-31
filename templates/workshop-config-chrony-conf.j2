@@ -1,4 +1,15 @@
+#
+# Chrony.conf template for OCP
+#   If NTP timeserver is defined we use "server <target>"
+#   Otherwise default to using a Red Hat NTP pool
+#
+
+{%if p_timeserver is defined and p_timeserver|length %}
 server {{ p_timeserver }} iburst 
+{% else %}
+pool 2.rhel.pool.ntp.org iburst
+{% endif %}
+
 driftfile /var/lib/chrony/drift
 makestep 1.0 3
 rtcsync

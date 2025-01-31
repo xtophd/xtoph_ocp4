@@ -49,4 +49,25 @@
           - ansible_facts['services']['firewalld.service']['state'] is defined
           - ansible_facts['services']['firewalld.service']['state'] == 'running'
 
+      ##
+      ##    NTP/Chrony config for OCP nodes should:
+      ##        use bastion service if bastion.ntp is true, OR
+      ##        user defined timeserver, OR 
+      ##        point to the redhat ntp pool (handled in template)
+      ##
+
+      - name: "xtoph_ocp4 : config-bastion-workshop-materials : install workshop-(yaml's) in /usr/local/etc"
+        vars:
+          - p_server:      "{{ xtoph_ocp4.bastion.host_ip }}"
+          - p_timeserver:  "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.ntp == true else xtoph_ocp4.network.timeserver }}"
+          - p_chrony_conf: "{{ lookup('template', 'workshop-config-chrony-conf.j2') | b64encode }}"
+        template:
+          src: "{{ item.src }}"
+          dest: "{{ item.dest }}"
+          owner: root
+          group: root
+          mode: 0644
+        with_items:
+          - {src: 'workshop-config-chrony-machineconfig-masters.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-masters.yaml'}
+          - {src: 'workshop-config-chrony-machineconfig-workers.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-workers.yaml'}
 

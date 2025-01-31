@@ -107,7 +107,7 @@
           - {src: 'exercise10-aap-pv.j2',         dest: '/usr/local/etc/exercise10-aap-pv.yaml'}
           - {src: 'exercise10-aap-sub1.j2',       dest: '/usr/local/etc/exercise10-aap-sub1.yaml'}
           - {src: 'exercise10-aap-sub2.j2',       dest: '/usr/local/etc/exercise10-aap-sub2.yaml'}
-          - {src: 'workshop-config-chrony-machineconfig-masters.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-masters.yaml'}
-          - {src: 'workshop-config-chrony-machineconfig-workers.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-workers.yaml'}
+#          - {src: 'workshop-config-chrony-machineconfig-masters.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-masters.yaml'}
+#          - {src: 'workshop-config-chrony-machineconfig-workers.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-workers.yaml'}
 
 
