@@ -1,4 +1,25 @@
   
+"4.20":
+  name:        "matchbox"
+  version:     "0.9.0"
+  url:         "https://github.com/poseidon/matchbox/releases/download/v0.9.0"
+  filename:    "matchbox-v0.9.0-linux-amd64.tar.gz"
+  destdir:     "matchbox-v0.9.0-linux-amd64"
+
+"4.19":
+  name:        "matchbox"
+  version:     "0.9.0"
+  url:         "https://github.com/poseidon/matchbox/releases/download/v0.9.0"
+  filename:    "matchbox-v0.9.0-linux-amd64.tar.gz"
+  destdir:     "matchbox-v0.9.0-linux-amd64"
+
+"4.18":
+  name:        "matchbox"
+  version:     "0.9.0"
+  url:         "https://github.com/poseidon/matchbox/releases/download/v0.9.0"
+  filename:    "matchbox-v0.9.0-linux-amd64.tar.gz"
+  destdir:     "matchbox-v0.9.0-linux-amd64"
+
 "4.17":
   name:        "matchbox"
   version:     "0.9.0"
