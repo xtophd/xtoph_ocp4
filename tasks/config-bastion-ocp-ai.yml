@@ -144,8 +144,8 @@
           group: root
           mode: 644
         when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
-
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : merge nmstate with host static_network_config(s)"
+     
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : merge nmstate and host static_network_config(s)"
         shell:
           chdir: "{{ t_tmpdir }}"
           cmd: |
@@ -185,6 +185,7 @@
     - t_mac:       "{{ xtoph_ocp4.rhcos.nic_mac }}"
 #    - t_netdev:    "{{ xtoph_ocp4.rhcos.nic_dev }}"
     - t_netdev:    "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):.*','\\1') }}"
+    - t_basedomain: "{{ xtoph_ocp4.ocp.basedomain }}"
 
     - t_dns:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
     - t_ntp:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.ntp == true else xtoph_ocp4.network.timeserver }}"

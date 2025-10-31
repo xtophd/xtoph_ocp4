@@ -42,7 +42,7 @@
         ignore_errors: true
         when: 
           - token_test.stat.exists
-          - bastion.status is not failed
+          - bastion_status is not failed
 
   when:
     - xtoph_ocp4.bastion.assisted_installer == true
