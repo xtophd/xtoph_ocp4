@@ -1,0 +1,22 @@
+- interfaces:
+    - name: eth_{{ t_name }}
+      type: ethernet
+      state: up
+      ipv4:
+        address:
+        - ip: {{ t_addr }}
+          prefix-length: {{ t_prefix }}
+        enabled: true
+      mac-address: '{{ t_mac }}'
+  dns-resolver:
+    config:
+      search:
+      - {{ t_basedomain }}
+      server:
+      - {{ t_dns }}
+  routes:
+    config:
+    - destination: 0.0.0.0/0
+      next-hop-address: {{ t_gateway }}
+      next-hop-interface: eth_{{ t_name }}
+      table-id: {{ t_table_id }}

@@ -26,10 +26,22 @@
           mode="0755"
           state=directory
 
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create ai fragments directory {{ t_tmpdir/fragments }}"
+        file:
+          path="{{ t_tmpdir }}/fragments"
+          mode="0755"
+          state=directory
+
+## IF WE NEED TO RETURN TO VERSION SPECIFIC AICLI
+#      - name: "xtoph_ocp4 : config-bastion-ocp-ai : pip install aicli"
+#        pip:
+#          name: aicli
+#          version: 99.0.202403121540
+#          state: present
+
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : pip install aicli"
         pip:
           name: aicli
-          version: 99.0.202403121540
           state: present
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : load ocm offline token"
@@ -50,6 +62,89 @@
         ignore_errors: true
         register: aicli_status
 
+
+
+      ########################################
+      ##
+      ##    Build parms.yml using
+      ##    templated fragments
+      ##
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-header"
+        vars: 
+          - t_sshkey: "{{ ssh_key.stdout }}"
+        template:
+          src: "ocp-ai-parms-header.j2"
+          dest: "{{ t_tmpdir }}/fragments/1-parms-header.yml"
+          owner: root
+          group: root
+          mode: 644
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-interfaces (DHCP)"
+        run_once: false
+        template:
+          src: "ocp-ai-parms-interfaces-dhcp.j2"
+          dest: "{{ t_tmpdir }}/fragments/3-parms-interfaces-{{ inventory_hostname_short }}.yml"
+          owner: root
+          group: root
+          mode: 644
+        when: 
+          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - xtoph_ocp4.rhcos.nic_mode != 'static'
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-interfaces (STATIC)"
+        run_once: false
+        template:
+          src: "ocp-ai-parms-interfaces-static.j2"
+          dest: "{{ t_tmpdir }}/fragments/3-parms-interfaces-{{ inventory_hostname_short }}.yml"
+          owner: root
+          group: root
+          mode: 644
+        when: 
+          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - xtoph_ocp4.rhcos.nic_mode == 'static'
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-header-macs"
+        template:
+          src: "ocp-ai-parms-header-macs.j2"
+          dest: "{{ t_tmpdir }}/fragments/4-parms-header-macs.yml"
+          owner: root
+          group: root
+          mode: 644
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-macs"
+        run_once: false
+        template:
+          src: "ocp-ai-parms-macs.j2"
+          dest: "{{ t_tmpdir }}/fragments/5-parms-macs-{{ inventory_hostname_short }}.yml"
+          owner: root
+          group: root
+          mode: 644
+        when: 
+          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : assemble parms fragments into parms.yml"
+        run_once: true
+        assemble:
+          src: "{{ t_tmpdir }}/fragments/"
+          dest: "{{ t_tmpdir }}/parms.yml"
+          owner: root
+          group: root
+          mode: 644
+
+
+
+      #- name: "PAUSE FOR USER INTERVENTION"
+      #  pause:
+      #    prompt: "Press ENTER when ready to continue..."
+              
+
+
+      ########################################
+      ##
+      ##    Time to create the cluster
+      ##
+
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new SNO cluster configuration"
         shell:
           cmd: |
@@ -60,6 +155,10 @@
                   -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
                   -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
                   -P network_type="OVNKubernetes"                                 \
+                  -P cpu_architecture="x86_64"                                    \
+                  -P control_plane_count="1"                                      \
+                  -P platform_type="baremetal"                                    \
+                  -P user_managed_networking="false"                              \
                   -P vip_dhcp_allocation="false"                                  
         when: 
           - aicli_status.rc != 0 
@@ -76,88 +175,22 @@
                   -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
                   -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
                   -P network_type="OVNKubernetes"                                 \
+                  -P cpu_architecture="x86_64"                                    \
+                  -P control_plane_count="{{ t_ctlplane_cnt }}"                   \
+                  -P platform_type="baremetal"                                    \
+                  -P user_managed_networking="false"                              \
                   -P vip_dhcp_allocation="false"                                  
         when: 
           - aicli_status.rc != 0 
           - xtoph_ocp4.ocp.sno == false
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy nmstate base"
-        vars: 
-          - t_sshkey: "{{ ssh_key.stdout }}"
-        template:
-          src: "ocp-ai-nmstate.j2"
-          dest: "{{ t_tmpdir }}/nmstate-base.yml"
-          owner: root
-          group: root
-          mode: 644
-
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy per-node STATIC network yaml"
-        run_once: false
-        template:
-          src: "ocp-ai-nmstate-node-network-static.j2"
-          dest: "{{ t_tmpdir }}/node-network-{{ inventory_hostname_short }}.yml"
-          owner: root
-          group: root
-          mode: 644
-        when: 
-          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
-          - xtoph_ocp4.rhcos.nic_mode == 'static'
-
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy per-node DHCP network yaml"
-        run_once: false
-        template:
-          src: "ocp-ai-nmstate-node-network-dhcp.j2"
-          dest: "{{ t_tmpdir }}/node-network-{{ inventory_hostname_short }}.yml"
-          owner: root
-          group: root
-          mode: 644
-        when: 
-          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
-          - xtoph_ocp4.rhcos.nic_mode != 'static'
-
-      ##
-      ##   NOTE: lookup plugins can not be delegated, thus we have to fetch a copy
-      ##         of the network config to the local system before using it in a template
-      ##
-
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : fetch per-node network yaml"
-        run_once: false
-        fetch:
-          dest: "{{ xtoph_ocp4._tmp_dir }}/node-network-{{ inventory_hostname_short }}.yml"
-          src: "{{ t_tmpdir }}/node-network-{{ inventory_hostname_short }}.yml"
-          flat: true
-          owner: root
-          group: root
-          mode: 644
-        when: 
-          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
-
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy per-node nmstate network configs"
-        run_once: false
-        vars:
-#          - t_network_yaml: "{{ lookup('template', 'ocp-ai-nmstate-network-yaml.j2') | replace('\n','\\n') }}"
-          - t_network_yaml: "{{ lookup('template', '{{ xtoph_ocp4._tmp_dir }}/node-network-{{ inventory_hostname_short }}.yml') | replace('\n','\\n') }}"
-        template:
-          src: "ocp-ai-nmstate-static-config.j2"
-          dest: "{{ t_tmpdir }}/nmstate-static-config-{{ inventory_hostname_short }}.yml"
-          owner: root
-          group: root
-          mode: 644
-        when: inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
-     
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : merge nmstate and host static_network_config(s)"
-        shell:
-          chdir: "{{ t_tmpdir }}"
-          cmd: |
-            jq '.static_network_config += [inputs]' nmstate-base.yml nmstate-static-config-*.yml > nmstate.yml
-               
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : aicli load nmstate config"
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : aicli load parms.yml"
         shell:
           chdir: "{{ t_tmpdir }}"
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                   update cluster {{ xtoph_ocp4.ocp.clustername }}  \
-                  --paramfile nmstate.yml
+                  --paramfile {{ t_tmpdir }}/parms.yml
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : cleanup any prior iso download"
         file:
@@ -178,14 +211,15 @@
                   download iso {{ xtoph_ocp4.ocp.clustername }}
 
 
+
   vars:
     - t_tmpdir:    "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/ai"
     - t_name:      "{{ inventory_hostname_short }}"
     - t_addr:      "{{ h_pubIP  }}"
     - t_mac:       "{{ xtoph_ocp4.rhcos.nic_mac }}"
-#    - t_netdev:    "{{ xtoph_ocp4.rhcos.nic_dev }}"
     - t_netdev:    "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):.*','\\1') }}"
     - t_basedomain: "{{ xtoph_ocp4.ocp.basedomain }}"
+    - t_ctlplane_cnt: "{{ xtoph_ocp4._cluster_masters | length }}"
 
     - t_dns:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
     - t_ntp:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.ntp == true else xtoph_ocp4.network.timeserver }}"
@@ -199,11 +233,11 @@
     - t_table_id:  "254"
 
 
-#
-#    restart the matchbox service
-#
 
-
+##    NOTE: matchbox is used to hold/share the ISO assets
+## 
+##    restart the matchbox service
+##
 
 - delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
   run_once: true
@@ -214,6 +248,4 @@
         service: name="{{ item }}" state=restarted enabled=yes masked=no daemon_reload=yes
         with_items:
           - "matchbox"
-
-      
 
