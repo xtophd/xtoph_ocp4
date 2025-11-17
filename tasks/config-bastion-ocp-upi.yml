@@ -1,5 +1,15 @@
 
-
+## 20251116
+##
+##    NOTE:
+##
+##    At this time, some parts of the upi workflow are also needed for the ai workflow.
+##    Only the last block which actaully creates and modifies the iso image is exclusive
+##    to upi-*.  This is because ai-http needs pxe/eufi-http configured and dhcp to be
+##    setup.
+##
+##    I will untangle this in the future
+##
 
 - delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
   run_once: true
@@ -240,6 +250,20 @@
               when:
                 - xtoph_ocp4.rhcos.bond_dev != ""
 
+            ## -- Add kernel_opts here -- ##
+            #- name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with additional kernel custom args"
+            #  throttle: "{{ xtoph_ocp4._throttle | int  }}"
+            #  shell:
+            #    cmd: |
+            #      cd {{t_assets_dir}}
+            #      podman run --privileged --rm \
+            #          -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
+            #          -w /data quay.io/coreos/coreos-installer:release \
+            #          iso kargs modify -a "bond={{xtoph_ocp4.rhcos.kernel_opts}}" {{ t_dest_iso }}
+            #  when:
+            #    - xtoph_ocp4.rhcos.bond_dev != ""
+
+
             - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image [coreos.inst defaults]"
               shell:
                 cmd: |
@@ -277,6 +301,7 @@
         when:
           - xtoph_ocp4.ocp.version is version('4.7',operator='>=')
           - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - xtoph_ocp4.ocp.provisioner == "upi-vmedia" or xtoph_ocp4.ocp.provisioner == "upi-pxe"
 
 
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize SNO ISO image with embedded ignition"
@@ -292,6 +317,7 @@
                 iso ignition embed -fi sno.ign {{ t_dest_iso }}
         when:
           - xtoph_ocp4.ocp.sno == true
+          - xtoph_ocp4.ocp.provisioner == "upi-vmedia" or xtoph_ocp4.ocp.provisioner == "upi-pxe"
           - inventory_hostname in xtoph_ocp4._cluster_sno
 
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : cleanup signle-node-ignition-config in assests dir"

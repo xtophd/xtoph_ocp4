@@ -1,7 +1,7 @@
 # Public and Private API entries
 
 # IF
-#    ai && sno cluster : IPs point to SNO node so we use CNAME
+#    sno cluster : IPs point to SNO node so we use CNAME
 # ELSEIF 
 #    ai && traditional cluster : uniqie service IPs, use PTR
 # ELSE
@@ -12,7 +12,7 @@
 cname=api.{{ p_cluster_fqdn }},{{ xtoph_ocp4._cluster_sno | first }}
 cname=api-int.{{ p_cluster_fqdn }},{{ xtoph_ocp4._cluster_sno | first }}
 
-{% elif (xtoph_ocp4.ocp.provisioner == 'ai') and (xtoph_ocp4.ocp.sno == False) %}
+{% elif (xtoph_ocp4.ocp.provisioner == 'ai-vmedia' or xtoph_ocp4.ocp.provisioner == 'ai-http') %}
 
 address=/api.{{ p_cluster_fqdn }}/{{ p_api_addr }}
 ptr-record={{ p_api_revAddr }}.in-addr.arpa,api.{{ p_cluster_fqdn }}

@@ -16,6 +16,9 @@
       "rd.neednet=1",
       "console=tty0",
       "usb-storage.delay_use={{ t_usbdelay }}",
+{% if xtoph_ocp4.rhcos.kernel_opts is defined %}
+      "{{ xtoph_ocp4.rhcos.kernel_opts }}",
+{% endif %}
       "coreos.inst.install_dev={{ t_storage }}",
 {% if xtoph_ocp4.ocp.version is version('4.6',operator='<') %}
       "coreos.inst=yes",

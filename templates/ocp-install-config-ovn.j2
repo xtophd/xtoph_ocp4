@@ -29,6 +29,9 @@ networking:
   - 172.30.0.0/16
 platform:
   none: {} 
+{% if xtoph_ocp4.rhcos.kernel_opts is defined %}
+append-karg: {{ xtoph_ocp4.rhcos.kernel_opts }} 
+{% endif %}
 {% if xtoph_ocp4.ocp.sno == True %}
 bootstrapInPlace:
   installationDisk: {{ hostvars[groups['mySNO'][0]].xtoph_ocp4.rhcos.blk_dev }}

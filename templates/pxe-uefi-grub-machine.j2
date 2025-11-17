@@ -23,7 +23,7 @@ menuentry 'Install Red Hat CoreOS {{ xtoph_ocp4.ocp.version }} [{{ t_name }}]' {
 menuentry 'Debug (Shell) Red Hat CoreOS {{ xtoph_ocp4.ocp.version }} [{{ t_name }}]' {
 
     echo "Loading kernel"
-    {{ p_kargs }} single
+    {{ p_kargs | trim }} single
 
     echo "Loading initrd"
     initrdefi  (http,{{ t_addr}}:{{ t_port }})/assets/{{ t_initramfs }}

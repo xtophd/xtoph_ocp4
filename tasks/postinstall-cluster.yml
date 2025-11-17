@@ -170,7 +170,7 @@
           timeout: 1800
         when: aicli_cluster_status.stdout == "ready"
 
-  when: xtoph_ocp4.ocp.provisioner == "ai"
+  when: xtoph_ocp4.ocp.provisioner == "ai-vmedia" or xtoph_ocp4.ocp.provisioner == "ai-http"
 
 #    - xtoph_ocp4.bastion.assisted_installer is defined and
 #      xtoph_ocp4.bastion.assisted_installer == true and

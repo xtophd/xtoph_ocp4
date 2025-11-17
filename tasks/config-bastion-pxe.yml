@@ -51,7 +51,7 @@
   block:
 
       #
-      #    Only configure if assisted_installer is undefined or false
+      #    Configure PXE for cluster_provisioner == upi-pxe | ai-http
       #
 
       #
@@ -271,6 +271,9 @@
                 {% if t_rootfs != "" %}
                 coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }} 
                 {% endif %}
+                {% if xtoph_ocp4.rhcos.kernel_opts is defined %}
+                {{ xtoph_ocp4.rhcos.kernel_opts }} 
+                {% endif %}
 
 
 
@@ -323,6 +326,9 @@
                 {% endif %}
                 {% if t_rootfs != "" %} 
                 coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }} 
+                {% endif %}
+                {% if xtoph_ocp4.rhcos.kernel_opts is defined %}
+                {{ xtoph_ocp4.rhcos.kernel_opts }} 
                 {% endif %}
 
 
@@ -382,6 +388,9 @@
                 {% if t_rootfs != "" %} 
                 coreos.live.rootfs_url=http://{{ t_addr }}:{{ t_port }}/assets/{{ t_rootfs }} 
                 {% endif %}
+                {% if xtoph_ocp4.rhcos.kernel_opts is defined %}
+                {{ xtoph_ocp4.rhcos.kernel_opts }} 
+                {% endif %}
 
 
 
@@ -413,11 +422,9 @@
           - ansible_facts['services']['firewalld.service']['state'] is defined
           - ansible_facts['services']['firewalld.service']['state'] == 'running'
 
-
   when: 
-    - xtoph_ocp4.bastion.assisted_installer is undefined or 
-      xtoph_ocp4.bastion.assisted_installer == false
-
+    - xtoph_ocp4.ocp.provisioner == "upi-pxe" or
+      xtoph_ocp4.ocp.provisioner == "ai-http"
 
   vars:
     - t_tmp:         "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}"

@@ -65,14 +65,7 @@
   when: 
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "pxe"
     - xtoph_ocp4.bastion.dhcp_pxe == true
-    - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
-
-- debug: 
-    msg:
-      - "{{ xtoph_ocp4_subaction }} == '' or {{ xtoph_ocp4_subaction }} == iso "
-      - "{{ xtoph_ocp4.bastion.iso }} == true "
-      - "{{ xtoph_ocp4.ocp.provisioner }} == upi "
-      - "{{ xtoph_ocp4.bastion.assisted_installer }} is undefined or {{ xtoph_ocp4.bastion.assisted_installer }} == false "
+#    - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
 
 - include_tasks: "config-bastion-dhcp.yml"
   when: 
@@ -120,20 +113,22 @@
     - xtoph_ocp4.ocp.version is version('4.6',operator='<=')
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "iso"
 #    - xtoph_ocp4.bastion.iso == true
-    - xtoph_ocp4.ocp.provisioner == "upi"
+    - xtoph_ocp4.ocp.provisioner == "upi-vmedia"
     - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
 
 - include_tasks: "config-bastion-ocp-upi.yml"
   when: 
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "upi"
-    - xtoph_ocp4.ocp.provisioner == "upi"
-    - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
+    - xtoph_ocp4.ocp.provisioner == "upi-vmedia" or 
+      xtoph_ocp4.ocp.provisioner == "upi-pxe" or 
+      xtoph_ocp4.ocp.provisioner == "ai-http"
 
 - include_tasks: "config-bastion-ocp-ai.yml"
   when: 
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "ai"
-    - xtoph_ocp4.ocp.provisioner == "ai"
     - xtoph_ocp4.bastion.assisted_installer is defined and xtoph_ocp4.bastion.assisted_installer == true
+    - xtoph_ocp4.ocp.provisioner == "ai-vmedia" or 
+      xtoph_ocp4.ocp.provisioner == "ai-http"
 
 - include_tasks: "config-bastion-ocp-lock.yml"
   when: 

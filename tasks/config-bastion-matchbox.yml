@@ -225,7 +225,7 @@
               until: coreos_download is not failed
               retries: 5
       
-        when: xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
+#        when: xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
       
       
       #   
@@ -350,7 +350,7 @@
 
 
 
-        when: xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
+#        when: xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
       
 
 
