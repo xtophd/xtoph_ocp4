@@ -2,68 +2,83 @@
 
 
 - delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
-  run_once: true
   block:
-
-
 
       #
       #    NOTE: Important source of infoabout AI REST API:
       #          https://github.com/openshift/assisted-service/blob/902a54d507dc4661d0ca2977114dc8500f52ee05/docs/user-guide/restful-api-guide.md
       #
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : install additional packages"
-        yum: name=python3-pip state=installed
+      - run_once: true
+        block: 
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : clean-up ai work directory {{ t_tmpdir }}"
-        shell:
-          cmd: |
-            if [[ -d "{{ t_tmpdir }}" ]] ; then rm -rf {{ t_tmpdir }} ; fi
+            - name: "xtoph_ocp4 : config-bastion-ocp-ai : install additional packages"
+              yum: name=python3-pip state=installed
+      
+            - name: "xtoph_ocp4 : config-bastion-ocp-ai : clean-up ai work directory {{ t_tmpdir }}"
+              shell:
+                cmd: |
+                  if [[ -d "{{ t_tmpdir }}" ]] ; then rm -rf {{ t_tmpdir }} ; fi
+      
+            - name: "xtoph_ocp4 : config-bastion-ocp-ai : create ai work directory {{ t_tmpdir }}"
+              file:
+                path="{{ t_tmpdir }}"
+                mode="0755"
+                state=directory
+      
+            - name: "xtoph_ocp4 : config-bastion-ocp-ai : create working directories {{ t_tmpdir }}"
+              file:
+                path="{{ t_tmpdir }}/{{ item }}"
+                mode="0755"
+                state=directory
+              with_items:
+                - "fragments"
+                - "manifests"
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create ai work directory {{ t_tmpdir }}"
-        file:
-          path="{{ t_tmpdir }}"
-          mode="0755"
-          state=directory
+            ## NOTE: IF WE NEED TO RETURN TO VERSION SPECIFIC AICLI
+            #- name: "xtoph_ocp4 : config-bastion-ocp-ai : pip install aicli"
+            #  pip:
+            #    name: aicli
+            #    version: 99.0.202403121540
+            #    state: present
+      
+            - name: "xtoph_ocp4 : config-bastion-ocp-ai : pip install aicli"
+              pip:
+                name: aicli
+                state: present
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create working directories {{ t_tmpdir }}"
-        file:
-          path="{{ t_tmpdir }}/{{ item }}"
-          mode="0755"
-          state=directory
-        with_items:
-          - "fragments"
-          - "manifests"
+      ##
+      ##
+      ##
+      
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : elect node which will run aicli and other isolated commands"
+        ansible.builtin.set_fact: 
+          elected_cluster_node:  "{{ ( xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno ) | first }}"
 
-## IF WE NEED TO RETURN TO VERSION SPECIFIC AICLI
-#      - name: "xtoph_ocp4 : config-bastion-ocp-ai : pip install aicli"
-#        pip:
-#          name: aicli
-#          version: 99.0.202403121540
-#          state: present
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create list of cluster nodes"
+        ansible.builtin.set_fact: 
+          cluster_nodes:  "{{ xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno }}"
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : pip install aicli"
-        pip:
-          name: aicli
-          state: present
+      - debug:
+          var: elected_cluster_node
+
+      - debug:
+          var: cluster_nodes
+
+      ##
+      ##  
+      ##
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : load ocm offline token"
-        run_once: false
         shell: cat {{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt
         register: ocm_token
-            
+                  
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : load ssh key"
-        run_once: false
         shell: cat /root/.ssh/id_rsa.pub
         register: ssh_key
  
-
-
-
-      ########################################
       ##
-      ##    Build parms.yml using
-      ##    templated fragments
+      ##    Build parms.yml using templated fragments
       ##
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-header"
@@ -75,9 +90,10 @@
           owner: root
           group: root
           mode: 644
+        when: 
+          - inventory_hostname == elected_cluster_node
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-interfaces (DHCP)"
-        run_once: false
         template:
           src: "ocp-ai-parms-interfaces-dhcp.j2"
           dest: "{{ t_tmpdir }}/fragments/3-parms-interfaces-{{ inventory_hostname_short }}.yml"
@@ -85,11 +101,10 @@
           group: root
           mode: 644
         when: 
-          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - inventory_hostname in cluster_nodes
           - xtoph_ocp4.rhcos.nic_mode != 'static'
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-interfaces (STATIC)"
-        run_once: false
         template:
           src: "ocp-ai-parms-interfaces-static.j2"
           dest: "{{ t_tmpdir }}/fragments/3-parms-interfaces-{{ inventory_hostname_short }}.yml"
@@ -97,7 +112,7 @@
           group: root
           mode: 644
         when: 
-          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - inventory_hostname in cluster_nodes
           - xtoph_ocp4.rhcos.nic_mode == 'static'
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-header-macs"
@@ -107,10 +122,10 @@
           owner: root
           group: root
           mode: 644
+        when: 
+          - inventory_hostname == elected_cluster_node
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-macs"
-        run_once: false
-        throttle: 1
         template:
           src: "ocp-ai-parms-macs.j2"
           dest: "{{ t_tmpdir }}/fragments/5-parms-macs-{{ inventory_hostname_short }}.yml"
@@ -118,20 +133,20 @@
           group: root
           mode: 644
         when: 
-          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - inventory_hostname in cluster_nodes
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : assemble parms fragments into parms.yml"
-        run_once: true
         assemble:
           src: "{{ t_tmpdir }}/fragments/"
           dest: "{{ t_tmpdir }}/parms.yml"
           owner: root
           group: root
           mode: 644
+        when: 
+          - inventory_hostname == elected_cluster_node
+
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy kernel args manifest"
-        run_once: false
-        throttle: 1
         vars:
           - t_kargs:     "{{ xtoph_ocp4.rhcos.kernel_opts | default ('') }}"
         template:
@@ -141,7 +156,7 @@
           group: root
           mode: 644
         when: 
-          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - inventory_hostname == elected_cluster_node
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : test for existing cluster configuration"
         shell:
@@ -150,20 +165,22 @@
                 info cluster {{ xtoph_ocp4.ocp.clustername }} 
         ignore_errors: true
         register: aicli_status
+        when: 
+          - inventory_hostname == elected_cluster_node
 
       - debug:
-          msg: "aicli --offlinetoken {{ ocm_token.stdout|quote }}"
-
-      - run_once: false
-        debug:
           msg:
-            - "aicli_status.rc {{ aicli_status.rc }} != 0 "
-            - "xtoph_ocp4.ocp.sno {{ xtoph_ocp4.ocp.sno }} == true"
-            - "inventory_hostname {{ inventory_hostname }}"
+            - "aicli --offlinetoken {{ ocm_token.stdout|quote }}"
+            - "Conditions:"
+            - "aicli_status.rc: {{ aicli_status.rc }} != 0 "
+            - "xtoph_ocp4.ocp.sno: {{ xtoph_ocp4.ocp.sno }} == true"
+            - "inventory_hostname: {{ inventory_hostname }}"
+        when: 
+          - inventory_hostname == elected_cluster_node
 
-      - name: "PAUSE FOR USER INTERVENTION BEFORE CREATING CLUSTER"
-        pause:
-          prompt: "Press ENTER when ready to continue..."
+      #- name: "PAUSE FOR USER INTERVENTION BEFORE CREATING CLUSTER"
+      #  pause:
+      #    prompt: "Press ENTER when ready to continue..."
              
 
 
@@ -173,9 +190,7 @@
       ##
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new SNO cluster configuration"
-        run_once: false
         shell:
-          creates: "{{ t_tmpdir }}/aicli-cluster.created"
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
                   create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
@@ -189,17 +204,14 @@
                   -P control_plane_count="1"                                      \
                   -P platform_type="baremetal"                                    \
                   -P user_managed_networking="false"                              \
-                  -P vip_dhcp_allocation="false"                                  \
-                  && touch {{ t_tmpdir }}/aicli-cluster.created
+                  -P vip_dhcp_allocation="false"                                  
         when: 
-          - aicli_status.rc != 0 
           - xtoph_ocp4.ocp.sno == true
-          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - inventory_hostname == elected_cluster_node
+          - aicli_status.rc != 0 
       
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new NORMAL cluster configuration"
-        run_once: false
         shell:
-          creates: "{{ t_tmpdir }}/aicli-cluster.created"
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
                   create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
@@ -214,12 +226,11 @@
                   -P control_plane_count="{{ t_ctlplane_cnt }}"                   \
                   -P platform_type="baremetal"                                    \
                   -P user_managed_networking="false"                              \
-                  -P vip_dhcp_allocation="false"                                  \
-                  && touch {{ t_tmpdir }}/aicli-cluster.created
+                  -P vip_dhcp_allocation="false"                                  
         when: 
-          - aicli_status.rc != 0 
           - xtoph_ocp4.ocp.sno == false
-          - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+          - inventory_hostname == elected_cluster_node
+          - aicli_status.rc != 0 
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : aicli load parms"
         shell:
@@ -228,12 +239,17 @@
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                   update cluster {{ xtoph_ocp4.ocp.clustername }}  \
                   --paramfile {{ t_tmpdir }}/parms.yml
+        when: 
+          - inventory_hostname == elected_cluster_node
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : aicli load manifests"
+        run_once: false
         shell:
           chdir: "{{ t_tmpdir }}"
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }} create manifests --dir manifests {{ xtoph_ocp4.ocp.clustername }}
+        when: 
+          - inventory_hostname == elected_cluster_node
 
 #      - name: "xtoph_ocp4 : config-bastion-ocp-ai : aicli add custom kernel args"
 #        run_once: false
@@ -247,9 +263,9 @@
 #          - xtoph_ocp4.rhcos.kernel_opts is defined
 #          - xtoph_ocp4.rhcos.kernel_opts | length
 
-      - name: "PAUSE FOR USER INTERVENTION BEFORE CREATING ISO"
-        pause:
-          prompt: "Press ENTER when ready to continue..."
+      #- name: "PAUSE FOR USER INTERVENTION BEFORE CREATING ISO"
+      #  pause:
+      #    prompt: "Press ENTER when ready to continue..."
              
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : cleanup any prior iso download"
         file:
@@ -261,6 +277,8 @@
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                   create iso {{ xtoph_ocp4.ocp.clustername }}           
+        when: 
+          - inventory_hostname == elected_cluster_node
       
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : aicli download ISO"
         shell:
@@ -268,21 +286,22 @@
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                   download iso {{ xtoph_ocp4.ocp.clustername }}
+        when: 
+          - inventory_hostname == elected_cluster_node
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : create soft links to ISO for cluster nodes"
-        run_once: false
         file:
           src: /var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}.iso
           dest: /var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}-{{inventory_hostname_short }}.iso
           state: link
         when:
-        - inventory_hostname in xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
+        - inventory_hostname in cluster_nodes
         
      
 
-      - name: "PAUSE FOR USER INTERVENTION BEFORE PROCEEDING WITH CLUSTER BUILD"
-        pause:
-          prompt: "Press ENTER when ready to continue..."
+      #- name: "PAUSE FOR USER INTERVENTION BEFORE PROCEEDING WITH CLUSTER BUILD"
+      #  pause:
+      #    prompt: "Press ENTER when ready to continue..."
              
 
   vars:
