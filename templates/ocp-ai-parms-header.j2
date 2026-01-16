@@ -2,4 +2,8 @@ ssh_public_key: "{{ t_sshkey }}"
 
 image_type: "full-iso"
 
+cluster_networks:
+- cidr: {{ xtoph_ocp4.ocp.clusternetwork_cidr }}
+  hostPrefix: {{ xtoph_ocp4.ocp.clusternetwork_cidr_hostprefix }}
+
 static_network_config:

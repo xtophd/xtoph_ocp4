@@ -22,8 +22,8 @@ proxy:
 {% endif %}
 networking:
   clusterNetwork:
-  - cidr: 10.128.0.0/14 
-    hostPrefix: 23 
+  - cidr: {{ xtoph_ocp4.ocp.clusternetwork_cidr }}
+    hostPrefix: {{ xtoph_ocp4.ocp.clusternetwork_cidr_hostprefix }}
   networkType: OVNKubernetes
   serviceNetwork: 
   - 172.30.0.0/16

@@ -11,18 +11,18 @@ controlPlane:
 metadata:
   name: {{ p_clusterName }}
 networking:
-  clusterNetworks:
-  - cidr: 10.254.0.0/16
-    hostPrefix: 24
+  clusterNetwork:
+  - cidr: {{ xtoph_ocp4.ocp.clusternetwork_cidr }}
+    hostPrefix: {{ xtoph_ocp4.ocp.clusternetwork_cidr_hostprefix }}
   networkType: OpenShiftSDN
   serviceNetwork:
   - 172.30.0.0/16
 platform:
   vsphere:
-    vcenter: ${{ p_vcenterServer }}
-    username: ${{ p_vcenterUser }}
-    password: ${{ p_vcenterPwd }}
+    vcenter: {{ p_vcenterServer }}
+    username: {{ p_vcenterUser }}
+    password: {{ p_vcenterPwd }}
     datacenter: {{ p_vcenterDC }}
     defaultDatastore: {{ p_vcenterDS }}
-pullSecret: '${PULL_SECRET}'
-sshKey: '${OCP_SSH_KEY}'
+pullSecret: {{ p_pullSecret }}
+sshKey: {{ p_sshKey }}

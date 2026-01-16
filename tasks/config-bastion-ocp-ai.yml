@@ -178,20 +178,14 @@
         when: 
           - inventory_hostname == elected_cluster_node
 
-      #- name: "PAUSE FOR USER INTERVENTION BEFORE CREATING CLUSTER"
-      #  pause:
-      #    prompt: "Press ENTER when ready to continue..."
-             
 
 
-      ########################################
-      ##
-      ##    Time to create the cluster
-      ##
-
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new SNO cluster configuration"
-        shell:
-          cmd: |
+      
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : write aicli-create.sh for SNO cluster"
+        copy:
+          dest: "{{ t_tmpdir }}/aicli-create.sh"
+          mode: "0750"
+          content: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
                   create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
                   -P sno=true                                                     \
@@ -208,11 +202,12 @@
         when: 
           - xtoph_ocp4.ocp.sno == true
           - inventory_hostname == elected_cluster_node
-          - aicli_status.rc != 0 
-      
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create new NORMAL cluster configuration"
-        shell:
-          cmd: |
+     
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : write aicli-create.sh for NORMAL cluster"
+        copy:
+          dest: "{{ t_tmpdir }}/aicli-create.sh"
+          mode: "0750"
+          content: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}                     \
                   create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
                   -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
@@ -232,41 +227,52 @@
           - inventory_hostname == elected_cluster_node
           - aicli_status.rc != 0 
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : aicli load parms"
-        shell:
-          chdir: "{{ t_tmpdir }}"
-          cmd: |
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : write aicli-param.sh"
+        copy:
+          dest: "{{ t_tmpdir }}/aicli-param.sh"
+          mode: "0750"
+          content: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                   update cluster {{ xtoph_ocp4.ocp.clustername }}  \
                   --paramfile {{ t_tmpdir }}/parms.yml
         when: 
           - inventory_hostname == elected_cluster_node
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : aicli load manifests"
-        run_once: false
-        shell:
-          chdir: "{{ t_tmpdir }}"
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : write aicli-manifest.sh"
+        copy:
+          dest: "{{ t_tmpdir }}/aicli-manifest.sh"
+          mode: "0750"
+          content: |
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }} create manifests --dir manifests {{ xtoph_ocp4.ocp.clustername }}
         when: 
           - inventory_hostname == elected_cluster_node
 
-#      - name: "xtoph_ocp4 : config-bastion-ocp-ai : aicli add custom kernel args"
-#        run_once: false
-#        shell:
-#          chdir: "{{ t_tmpdir }}"
-#          cmd: |
-#            aicli --offlinetoken {{ ocm_token.stdout|quote }} \
-#                  update host {{ inventory_hostname  }}       \
-#                  --P extra_args="--append-karg={{ xtoph_ocp4.rhcos.kernel_opts }}"
-#        when:
-#          - xtoph_ocp4.rhcos.kernel_opts is defined
-#          - xtoph_ocp4.rhcos.kernel_opts | length
 
-      #- name: "PAUSE FOR USER INTERVENTION BEFORE CREATING ISO"
-      #  pause:
-      #    prompt: "Press ENTER when ready to continue..."
-             
+
+      ########################################
+      ##
+      ##    Time to create the cluster
+      ##
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : execute aicli scripts"
+        shell:
+          chdir: "{{ t_tmpdir }}"
+          cmd: ./aicli-create.sh 
+        with_items:
+          - "aicli-create.sh"
+          - "aicli-param.sh"
+          - "aicli-manifest.sh"
+        when: 
+          - inventory_hostname == elected_cluster_node
+          - aicli_status.rc != 0 
+
+      - name: "PAUSE TO INSPECT STATE OF CLUSTER CONFIG"
+        pause:
+          prompt: "Press ENTER when ready to continue..."
+
+
+
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : cleanup any prior iso download"
         file:
           path: "/var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}.iso"
@@ -298,11 +304,6 @@
         - inventory_hostname in cluster_nodes
         
      
-
-      #- name: "PAUSE FOR USER INTERVENTION BEFORE PROCEEDING WITH CLUSTER BUILD"
-      #  pause:
-      #    prompt: "Press ENTER when ready to continue..."
-             
 
   vars:
     - t_tmpdir:    "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/ai"
