@@ -225,7 +225,6 @@
         when: 
           - xtoph_ocp4.ocp.sno == false
           - inventory_hostname == elected_cluster_node
-          - aicli_status.rc != 0 
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : write aicli-param.sh"
         copy:
@@ -243,7 +242,6 @@
           dest: "{{ t_tmpdir }}/aicli-manifest.sh"
           mode: "0750"
           content: |
-          cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }} create manifests --dir manifests {{ xtoph_ocp4.ocp.clustername }}
         when: 
           - inventory_hostname == elected_cluster_node
@@ -255,21 +253,31 @@
       ##    Time to create the cluster
       ##
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : execute aicli scripts"
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : execute aicli-create script"
         shell:
           chdir: "{{ t_tmpdir }}"
           cmd: ./aicli-create.sh 
         with_items:
           - "aicli-create.sh"
-          - "aicli-param.sh"
-          - "aicli-manifest.sh"
         when: 
           - inventory_hostname == elected_cluster_node
           - aicli_status.rc != 0 
 
-      - name: "PAUSE TO INSPECT STATE OF CLUSTER CONFIG"
-        pause:
-          prompt: "Press ENTER when ready to continue..."
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : execute aicli-(update) scripts"
+        shell:
+          chdir: "{{ t_tmpdir }}"
+          cmd: "./{{ item }}"
+        with_items:
+          - "aicli-param.sh"
+          - "aicli-manifest.sh"
+        when: 
+          - inventory_hostname == elected_cluster_node
+
+
+
+#      - name: "PAUSE TO INSPECT STATE OF CLUSTER CONFIG"
+#        pause:
+#          prompt: "Press ENTER when ready to continue..."
 
 
 
