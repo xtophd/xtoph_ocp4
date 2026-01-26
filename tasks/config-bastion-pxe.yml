@@ -262,7 +262,6 @@
                 {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
                 rd.neednet=1 
                 console=tty0 
-                usb-storage.delay_use={{t_usbdelay}}
                 coreos.inst.insecure=yes
                 coreos.inst.ignition.firstboot 
                 coreos.inst.ignition.platform.id=metal
@@ -312,7 +311,6 @@
                 {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
                 rd.neednet=1 
                 console=tty0 
-                usb-storage.delay_use={{t_usbdelay}}
                 coreos.inst.insecure=yes
                 coreos.inst.ignition.firstboot 
                 coreos.inst.ignition.platform.id=metal
@@ -371,7 +369,6 @@
                 nomodeset
                 ip={{ t_ip }} 
                 {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
-                usb-storage.delay_use={{t_usbdelay}}
                 rd.neednet=1 
                 console=tty0 
                 coreos.inst.insecure=yes
@@ -446,7 +443,6 @@
     - t_ip:          "{% if xtoph_ocp4.rhcos.nic_mode == 'dhcp' %}{{ t_ip_dhcp }}{% else %}{{ t_ip_static }}{% endif %}"
 
     - t_storage:     "{{ xtoph_ocp4.rhcos.blk_dev }}"
-    - t_usbdelay:    "{{ xtoph_ocp4.rhcos.usb_delay }}"
     - t_loader:      "{{ xtoph_ocp4.rhcos.bootloader }}"
     - t_bios:        "{{ xtoph_ocp4.rhcos_assets.bios    | default('') }}"
     - t_uefi:        "{{ xtoph_ocp4.rhcos_assets.uefi    | default('') }}"

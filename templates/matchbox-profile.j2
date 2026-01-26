@@ -15,7 +15,6 @@
 {% endif %}
       "rd.neednet=1",
       "console=tty0",
-      "usb-storage.delay_use={{ t_usbdelay }}",
 {% if xtoph_ocp4.rhcos.kernel_opts is defined %}
       "{{ xtoph_ocp4.rhcos.kernel_opts }}",
 {% endif %}

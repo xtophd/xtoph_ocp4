@@ -168,17 +168,19 @@
 
 
 
-      ##
-      ##    Special handling for installation blk_dev
-      ##      when OCP version >= 4.6 we prepend '/dev/'
-      ##
-
-      - name: "main.yml : prepend '/dev/' to blk_dev when OCP version >= 4.6"
-        set_fact:
-          xtoph_ocp4: "{{ xtoph_ocp4 | combine( {'rhcos': {'blk_dev': t_blkdev}}, recursive=True ) }}"
-        vars:
-          t_blkdev: "{{ '/dev/' + xtoph_ocp4.rhcos.blk_dev }}"
-        when: xtoph_ocp4.ocp.version is version('4.6',operator='>=')
+#      ##
+#      ##    Special handling for installation blk_dev
+#      ##      when OCP version >= 4.6 we prepend '/dev/'
+#      ##
+#      ##    THIS DOES NOT APPEAR TO BE TRUE FOR ASSISTED INSTALLER
+#      ##    DISABLING THIS FEATURE FOR FURTHER TESTING
+#
+#      - name: "main.yml : prepend '/dev/' to blk_dev when OCP version >= 4.6"
+#        set_fact:
+#          xtoph_ocp4: "{{ xtoph_ocp4 | combine( {'rhcos': {'blk_dev': t_blkdev}}, recursive=True ) }}"
+#        vars:
+#          t_blkdev: "{{ '/dev/' + xtoph_ocp4.rhcos.blk_dev }}"
+#        when: xtoph_ocp4.ocp.version is version('4.6',operator='>=')
 
 
 

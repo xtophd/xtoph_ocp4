@@ -60,7 +60,6 @@
           msg:
           - "ISO Target        = {{ t_dest_iso }}"
           - "ISO LABEL ID      = {{ isoinfo.stdout }}"
-          - "USB-STORAGE.DELAY = {{ xtoph_ocp4.rhcos.usb_delay }}"
           - "NIC Mode          = {{ xtoph_ocp4.rhcos.nic_mode }}"
           - "DNS               = {{ t_dns }}"
           - "RHCOS NET DEV     = {{ t_dev }}"
@@ -68,6 +67,8 @@
           - "RHCOS DHCP        = {{ t_ip_dhcp }}"
           - "RHCOS STATIC      = {{ t_ip_static }}"
           - "RHCOS IGN URL     = {{ t_ignition_url }}"
+          - "RHCOS KERNEL ARGS = {{ xtoph_ocp4.rhcos.kernel_opts }}"
+
 
       #
       #    NOTE:  because I am using http (not https), 
@@ -93,7 +94,6 @@
           regexp: '(\s+)append(\s+.*)?$'
           replace: >
               \1append\2 rd.neednet=1 
-              usb-storage.delay_use={{t_usbdelay}} 
               ip={{ t_ip }}
               {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
               {% if xtoph_ocp4.ocp.version is version('4.3',operator='<') %}
@@ -104,6 +104,10 @@
               coreos.inst.insecure=yes
               coreos.inst.install_dev={{ t_storage }}
               coreos.inst.ignition_url={{ t_ignition_url }}
+              {% if xtoph_ocp4.rhcos.kernel_opts is defined %}
+              {{ xtoph_ocp4.rhcos.kernel_opts }}
+              {% endif %}
+
 
       - name: "xtoph_ocp4 : config-bastion-legacy-iso : GRUB timeout adjustment"
         replace:
@@ -117,7 +121,6 @@
           regexp: '(\s+)linux(\s+.*)?$'
           replace: >
               \1linux\2 rd.neednet=1 
-              usb-storage.delay_use={{t_usbdelay}} 
               ip={{ t_ip }}
               {% if t_bond != "" %}bond={{ t_bond }}{% endif %}
               {% if xtoph_ocp4.ocp.version is version('4.3',operator='<') %}
@@ -128,6 +131,9 @@
               coreos.inst.insecure=yes
               coreos.inst.install_dev={{ t_storage }}
               coreos.inst.ignition_url={{ t_ignition_url }}
+              {% if xtoph_ocp4.rhcos.kernel_opts is defined %}
+              {{ xtoph_ocp4.rhcos.kernel_opts }}
+              {% endif %}
 
       - name: "xtoph_ocp4 : config-bastion-legacy-iso : for each host generate custom iso image"
         throttle: "{{ xtoph_ocp4._throttle | int  }}"
@@ -188,7 +194,6 @@
     - t_ignition_url: "http://{{xtoph_ocp4.bastion.host_ip}}:{{xtoph_ocp4.bastion.matchbox_port}}/ignition?mac={{xtoph_ocp4.rhcos.nic_mac}}"
 
     - t_storage:     "{{ xtoph_ocp4.rhcos.blk_dev }}"
-    - t_usbdelay:    "{{ xtoph_ocp4.rhcos.usb_delay }}"
     - t_src_iso:     "/var/lib/matchbox/assets/{{ xtoph_ocp4.rhcos_assets.iso }}"
     - t_dest_iso:    "/var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
 

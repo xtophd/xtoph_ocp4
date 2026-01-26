@@ -157,19 +157,13 @@
       ##            and it's options to do customizations incrementally
       ##
       ##
-      ##    usb-storage.delay          linux kernel option used to prevent usb storage from
-      ##                               posting before raid cards.  averts issue where BMC virtual
-      ##                               device winds up as /dev/sda (normally the booot/install device)
+      ##    2026-01 deprecated isolated variable for usb-storage.delay_use
+      ##            hosts that need it should add it to kernel_opts (in the machine profile for example)
       ##
       ##    coreos.inst                install coreos
       ##    coreos.inst.insecure       allow http hosted images (don't require https)
       ##    coreos.inst.install_dev    block device to be used for installation
       ##    coreos.inst.ignition_url   url which hosts the ignition files
-      ##    
-      ##
-      ##
-      ##
-      ##
       ##
 
 
@@ -180,7 +174,6 @@
               debug:
                 msg:
                 - "ISO Target        = {{ t_dest_iso }}"
-                - "USB-STORAGE.DELAY = {{ xtoph_ocp4.rhcos.usb_delay }}"
                 - "NIC Mode          = {{ xtoph_ocp4.rhcos.nic_mode }}" 
                 - "DNS               = {{ t_dns }}"
                 - "RHCOS NET DEV     = {{ t_dev }}"
@@ -188,6 +181,7 @@
                 - "RHCOS DHCP        = {{ t_ip_dhcp }}"
                 - "RHCOS STATIC      = {{ t_ip_static }}"
                 - "RHCOS IGN URL     = {{ t_ignition_url }}"
+                - "RHCOS KERNEL ARGS = {{ xtoph_ocp4.rhcos.kernel_opts }}"
 
             - name: "xtoph_ocp4 : config-bastion-ocp-upi : clone ISO source to node specific ISO images"
               throttle: "{{ xtoph_ocp4._throttle | int  }}"
@@ -203,16 +197,6 @@
                 owner: matchbox
                 group: matchbox
                 state: file
-
-            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with kernels args for USB-STORAGE.DELAY"
-              throttle: "{{ xtoph_ocp4._throttle | int  }}"
-              shell:
-                cmd: |
-                  cd {{t_assets_dir}}
-                  podman run --privileged --rm \
-                      -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
-                      -w /data quay.io/coreos/coreos-installer:release \
-                      iso kargs modify -a "usb-storage.delay_use={{xtoph_ocp4.rhcos.usb_delay}}" {{ t_dest_iso }}
 
             - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with kernel args for DHCP IP"
               throttle: "{{ xtoph_ocp4._throttle | int  }}"
@@ -250,19 +234,17 @@
               when:
                 - xtoph_ocp4.rhcos.bond_dev != ""
 
-            ## -- Add kernel_opts here -- ##
-            #- name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with additional kernel custom args"
-            #  throttle: "{{ xtoph_ocp4._throttle | int  }}"
-            #  shell:
-            #    cmd: |
-            #      cd {{t_assets_dir}}
-            #      podman run --privileged --rm \
-            #          -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
-            #          -w /data quay.io/coreos/coreos-installer:release \
-            #          iso kargs modify -a "bond={{xtoph_ocp4.rhcos.kernel_opts}}" {{ t_dest_iso }}
-            #  when:
-            #    - xtoph_ocp4.rhcos.bond_dev != ""
-
+            - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image with additional kernel custom args"
+              throttle: "{{ xtoph_ocp4._throttle | int  }}"
+              shell:
+                cmd: |
+                  cd {{t_assets_dir}}
+                  podman run --privileged --rm \
+                      -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
+                      -w /data quay.io/coreos/coreos-installer:release \
+                      iso kargs modify -a "{{xtoph_ocp4.rhcos.kernel_opts}}" {{ t_dest_iso }}
+              when:
+                - xtoph_ocp4.rhcos.kernel_opts is defined
 
             - name: "xtoph_ocp4 : config-bastion-ocp-upi : customize RHCOS ISO image [coreos.inst defaults]"
               shell:

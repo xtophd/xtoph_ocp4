@@ -39,14 +39,6 @@
           - aicli_node_status.stdout == "known"
           - inventory_hostname in xtoph_ocp4._cluster_masters
 
-
-       
-      #- name: "PAUSE BEFORE STARTING CLUSTER BUILD: [EX: aicli list|info cluster|infraenv|host"
-      #  pause:
-      #    prompt: "Press ENTER when ready to continue..."
-
-
-
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster status == ready | installed"
         run_once: true
         shell:
@@ -58,6 +50,14 @@
         delay: 5
         retries: 600
        
+
+
+      #- name: "PAUSE BEFORE STARTING CLUSTER BUILD: [EX: aicli list|info cluster|infraenv|host"
+      #  pause:
+      #    prompt: "Press ENTER when ready to continue..."
+
+
+
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) start cluster build"
         run_once: true
         shell:

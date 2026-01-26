@@ -369,7 +369,6 @@
     - t_ip:          "{% if xtoph_ocp4.rhcos.nic_mode == 'dhcp' %}{{ t_ip_dhcp }}{% else %}{{ t_ip_static }}{% endif %}"
 
     - t_storage:   "{{ xtoph_ocp4.rhcos.blk_dev }}"
-    - t_usbdelay:  "{{ xtoph_ocp4.rhcos.usb_delay }}"
     - t_loader:    "{{ xtoph_ocp4.rhcos.bootloader }}"
     - t_bios:      "{{ xtoph_ocp4.rhcos_assets.bios    | default('') }}"
     - t_uefi:      "{{ xtoph_ocp4.rhcos_assets.uefi    | default('') }}"
