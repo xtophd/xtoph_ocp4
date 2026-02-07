@@ -132,7 +132,7 @@
           group: root
           mode:  644
         with_items:
-          - { src: "dnsmasq-standard-opts.j2",  dest: "/etc/dnsmasq.d/30-standard-opts.conf" }
+          - { src: "dnsmasq-standard-opts.j2",  dest: "/etc/dnsmasq.d/30-{{ p_cluster_fqdn }}-standard-opts.conf" }
           - { src: "dnsmasq-api-entry.j2",      dest: "/etc/dnsmasq.d/55-{{ p_cluster_fqdn }}-api.conf" }
           - { src: "dnsmasq-wildcard-entry.j2", dest: "/etc/dnsmasq.d/45-{{ p_cluster_fqdn }}-wildcard.conf" }
 
