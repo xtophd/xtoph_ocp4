@@ -22,7 +22,7 @@
            - "  OCP Version             = {{ xtoph_ocp4.ocp.version }}"
            - "  UPI Strapless Mode      = {{ xtoph_ocp4.ocp.strapless }}"
            - "  Assisted Installer      = {{ xtoph_ocp4.bastion.assisted_installer }}"
-           - "  Assisted Installer SNO  = {{ xtoph_ocp4.ocp.sno }}"
+           - "  Topology                = {{ xtoph_ocp4.ocp.topology }}"
            - "  Node Counts"
            - "    Bootstrap         = {{ xtoph_ocp4._cluster_bootstrap | length }}"
            - "    BootstrapFlipFlop = {{ xtoph_ocp4._cluster_bootstrap_flipflop | length }}"
@@ -122,7 +122,7 @@
             - xtoph_ocp4.ocp.version is version('4.9',operator='>=')
         when:
           - xtoph_ocp4.bastion.assisted_installer == True
-          - xtoph_ocp4.ocp.sno == False
+          - xtoph_ocp4.ocp.topology != "sno"
 
       - name: "xtoph_ocp4 : config-bastion-assertions : validate server count for assisted installer single node (AI-SNO)"
         ansible.builtin.assert: 
@@ -137,7 +137,7 @@
             - xtoph_ocp4.ocp.version is version('4.9',operator='>=')
         when:
           - xtoph_ocp4.bastion.assisted_installer == True
-          - xtoph_ocp4.ocp.sno == True
+          - xtoph_ocp4.ocp.topology == "sno"
 
       - name: "xtoph_ocp4 : config-bastion-assertions : validate provisioner for single node (SNO)"
         ansible.builtin.assert: 
@@ -147,5 +147,5 @@
             - xtoph_ocp4.ocp.provisioner is not 'upi-pxe'
         when:
           - xtoph_ocp4.bastion.assisted_installer == True
-          - xtoph_ocp4.ocp.sno == True
+          - xtoph_ocp4.ocp.topology == "sno"
 

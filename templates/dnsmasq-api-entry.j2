@@ -7,7 +7,7 @@
 # ELSE
 #    upi && traditional cluster : CNAMES point to bastion/haproxy
 
-{% if xtoph_ocp4.ocp.sno == True %}
+{% if xtoph_ocp4.ocp.topology == "sno" %}
 
 cname=api.{{ p_cluster_fqdn }},{{ xtoph_ocp4._cluster_sno | first }}
 cname=api-int.{{ p_cluster_fqdn }},{{ xtoph_ocp4._cluster_sno | first }}

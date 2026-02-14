@@ -7,7 +7,7 @@ compute:
 controlPlane:
   hyperthreading: Enabled   
   name: master 
-{% if xtoph_ocp4.ocp.sno == True %}
+{% if xtoph_ocp4.ocp.topology == "sno" %}
   replicas: 1 
 {% else %}
   replicas: 3 
@@ -32,7 +32,7 @@ platform:
 {% if xtoph_ocp4.rhcos.kernel_opts is defined %}
 append-karg: {{ xtoph_ocp4.rhcos.kernel_opts }} 
 {% endif %}
-{% if xtoph_ocp4.ocp.sno == True %}
+{% if xtoph_ocp4.ocp.topology == "sno" %}
 bootstrapInPlace:
   installationDisk: {{ hostvars[groups['mySNO'][0]].xtoph_ocp4.rhcos.blk_dev }}
 {% endif %}

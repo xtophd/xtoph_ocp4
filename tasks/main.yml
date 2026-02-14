@@ -199,9 +199,9 @@
                   - "  If  ai == false && strapless == true && version <  4.11 then use node from myWorkers"
                   - ""
                   - "OCP Version            = {{ xtoph_ocp4.ocp.version }}"
+                  - "OCP Topology           = {{ xtoph_ocp4.ocp.topology }}"
                   - "OCP Strapless          = {{ xtoph_ocp4.ocp.strapless }}"
                   - "Assisted Installer     = {{ xtoph_ocp4.bastion.assisted_installer }}"
-                  - "Assisted Installer SNO = {{ xtoph_ocp4.ocp.sno }}"
               when: xtoph_ocp4._debug == true
 
 

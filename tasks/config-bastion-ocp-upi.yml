@@ -119,14 +119,14 @@
           cmd: |
             cd {{ xtoph_ocp4.ocp.creds_dir }}
             /usr/local/bin/openshift-install --dir={{ xtoph_ocp4.ocp.creds_dir }} create ignition-configs
-        when: xtoph_ocp4.ocp.sno == false 
+        when: xtoph_ocp4.ocp.topology != "sno"
           
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : create SNO ignition files"
         shell:
           cmd: |
             cd {{ xtoph_ocp4.ocp.creds_dir }}
             /usr/local/bin/openshift-install --dir={{ xtoph_ocp4.ocp.creds_dir }} create single-node-ignition-config
-        when: xtoph_ocp4.ocp.sno == true
+        when: xtoph_ocp4.ocp.topology == "sno"
           
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : rename signle-node-ignition-config and put copy in assests dir"
         shell:
@@ -134,7 +134,7 @@
             cd {{ xtoph_ocp4.ocp.creds_dir }}
             mv bootstrap-in-place-for-live-iso.ign sno.ign
             cp sno.ign /var/lib/matchbox/assets/
-        when: xtoph_ocp4.ocp.sno == true
+        when: xtoph_ocp4.ocp.topology == "sno"
 
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : copy ignition files"
         shell:
@@ -298,7 +298,7 @@
                 -w /data quay.io/coreos/coreos-installer:release \
                 iso ignition embed -fi sno.ign {{ t_dest_iso }}
         when:
-          - xtoph_ocp4.ocp.sno == true
+          - xtoph_ocp4.ocp.topology == "sno"
           - xtoph_ocp4.ocp.provisioner == "upi-vmedia" or xtoph_ocp4.ocp.provisioner == "upi-pxe"
           - inventory_hostname in xtoph_ocp4._cluster_sno
 
@@ -306,7 +306,7 @@
         shell:
           cmd: |
             rm -f  /var/lib/matchbox/assets/iso.ign
-        when: xtoph_ocp4.ocp.sno == true
+        when: xtoph_ocp4.ocp.topology == "sno"
 
       ## Maybe matchbox needs a refresh of content updates, so just to be safe... restart
 

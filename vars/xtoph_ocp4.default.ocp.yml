@@ -19,6 +19,7 @@
   no_proxy:                "{{ workshop_vars.no_proxy            | default('')             }}"
   provisioner:             "{{ workshop_vars.ocp_provisioner     | default('upi')          }}"
   sno:                     "{{ workshop_vars.ocp_sno             | default(False)          }}"
+  topology:                "{{ workshop_vars.ocp_topology        | default('3x2')          }}"
 
 "ocp-4.16":
   admin_user:       "cloud-admin"
@@ -35,6 +36,7 @@
   no_proxy:         ""
   provisioner:      "--required--"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.15":
   admin_user:       "cloud-admin"
@@ -51,6 +53,7 @@
   no_proxy:         ""
   provisioner:      "--required--"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.14":
   admin_user:       "cloud-admin"
@@ -67,6 +70,7 @@
   no_proxy:         ""
   provisioner:      "--required--"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.13":
   admin_user:       "cloud-admin"
@@ -83,6 +87,7 @@
   no_proxy:         ""
   provisioner:      "--required--"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.12":
   admin_user:       "cloud-admin"
@@ -99,6 +104,7 @@
   no_proxy:         ""
   provisioner:      "--required--"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.11":
   admin_user:       "cloud-admin"
@@ -115,6 +121,7 @@
   no_proxy:         ""
   provisioner:      "--required--"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.10":
   admin_user:       "cloud-admin"
@@ -131,6 +138,7 @@
   no_proxy:         ""
   provisioner:      "--required--"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.9":
   admin_user:       "cloud-admin"
@@ -147,6 +155,7 @@
   no_proxy:         ""
   provisioner:      "--required--"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.8":
   admin_user:       "cloud-admin"
@@ -163,6 +172,7 @@
   no_proxy:         ""
   provisioner:      "--required--"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.7":
   admin_user:       "cloud-admin"
@@ -179,6 +189,7 @@
   no_proxy:         ""
   provisioner:      "upi"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.6":
   admin_user:       "cloud-admin"
@@ -195,6 +206,7 @@
   no_proxy:         ""
   provisioner:      "upi"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.5":
   admin_user:       "cloud-admin"
@@ -211,6 +223,7 @@
   no_proxy:         ""
   provisioner:      "upi"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.4":
   admin_user:       "cloud-admin"
@@ -227,6 +240,7 @@
   no_proxy:         ""
   provisioner:      "upi"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.3":
   admin_user:       "cloud-admin"
@@ -243,6 +257,7 @@
   no_proxy:         ""
   provisioner:      "upi"
   sno:              False
+  topology:         "3x2"
 
 "ocp-4.2":
   admin_user:       "cloud-admin"
@@ -259,4 +274,5 @@
   no_proxy:         ""
   provisioner:      "upi"
   sno:              False
+  topology:         "3x2"
 

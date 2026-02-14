@@ -173,7 +173,7 @@
             - "aicli --offlinetoken {{ ocm_token.stdout|quote }}"
             - "Conditions:"
             - "aicli_status.rc: {{ aicli_status.rc }} != 0 "
-            - "xtoph_ocp4.ocp.sno: {{ xtoph_ocp4.ocp.sno }} == true"
+            - "xtoph_ocp4.ocp.topology: {{ xtoph_ocp4.ocp.topology }} == sno"
             - "inventory_hostname: {{ inventory_hostname }}"
         when: 
           - inventory_hostname == elected_cluster_node
@@ -200,7 +200,7 @@
                   -P user_managed_networking="false"                              \
                   -P vip_dhcp_allocation="false"                                  
         when: 
-          - xtoph_ocp4.ocp.sno == true
+          - xtoph_ocp4.ocp.topology == "sno"
           - inventory_hostname == elected_cluster_node
      
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : write aicli-create.sh for NORMAL cluster"
@@ -223,7 +223,7 @@
                   -P user_managed_networking="false"                              \
                   -P vip_dhcp_allocation="false"                                  
         when: 
-          - xtoph_ocp4.ocp.sno == false
+          - xtoph_ocp4.ocp.topology != "sno"
           - inventory_hostname == elected_cluster_node
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : write aicli-param.sh"
