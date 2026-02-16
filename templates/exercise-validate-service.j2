@@ -1,0 +1,18 @@
+#!/bin/bash
+
+## This script snipes the IP address.  The port is assumed to be 8080
+
+OCPNODE=`oc get nodes --no-headers | grep -i worker | head -n 1 | awk '{ print $1 }'`
+SERVICEIP=`oc get service --no-headers | awk '{ print $3 }'`
+SERVICEURL="http://${SERVICEIP}:8080"
+
+ssh core@${OCPNODE} "curl -s ${SERVICEURL}"
+
+echo ""
+echo "## ---------- Service Validation ----------"
+echo "## DETERMINED NODE: ${OCPNODE}"
+echo "## DETERMINED SERVICE: ${SERVICEURL}"
+echo "## EXEC: ssh core@${OCPNODE} \"curl -s ${SERVICEURL}\""
+echo ""
+
+

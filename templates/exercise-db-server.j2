@@ -57,10 +57,17 @@ run_cmd "Create postgress db server pod" \
 
 
 
+##
+##
+##
+
+
+ROUTE=`oc get route --no-headers | awk '{ print $2 }'`
+
 echo ""
 echo "## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - "
 echo "## You can validate the results by running..."
 echo "##"
-echo "##    <TBD>"
+echo "##    curl -k http://$ROUTE"
 echo "##"
 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+
 ## This script on snipes the pod name and runs oc cp {src} podname:{dst}
 
 SRC="/usr/local/etc/exercise-hello-world.html"
@@ -23,3 +25,19 @@ for PODNAME in `oc get pods --no-headers | awk '{ print $1 }'` ; do
 
     fi
 done
+
+
+##
+##
+##
+
+
+ROUTE=`oc get route --no-headers | awk '{ print $2 }'`
+
+echo ""
+echo "## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - "
+echo "## You can validate the results by running..."
+echo "##"
+echo "##    curl -k http://$ROUTE"
+echo "##"
+

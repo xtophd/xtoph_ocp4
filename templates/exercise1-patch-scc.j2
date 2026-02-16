@@ -35,13 +35,14 @@ function run_cmd() {
 
 
 run_cmd "Patch project SCC" \
-        "oc patch namespace exercise-hello-world1 --patch '{\"metadata\":{\"annotations\":{\"openshift.io/sa.scc.uid-range\":\"1001/10000\"}}}'"
+        "oc patch namespace cli-ex01 --patch '{\"metadata\":{\"annotations\":{\"openshift.io/sa.scc.uid-range\":\"1001/10000\"}}}'"
 
 run_cmd "Delete all pods and force rollout of latest changes" \
-        "oc delete --all pods -n exercise-hello-world1"
+        "oc delete --all pods -n cli-ex01"
 
 sleep 3
 
 run_cmd "Wait for rollout" \
-        "oc rollout status deployment/hello-app1"
+        "oc rollout status deployment/hello-app"
+
 

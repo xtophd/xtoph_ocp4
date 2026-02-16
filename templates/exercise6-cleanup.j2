@@ -26,30 +26,35 @@ function run_cmd() {
 }
 
 
-
 ##
-##
+##    Delete projects
 ##
 
 
 run_cmd "Change current project namespace to default" \
         "oc project default"
 
-run_cmd "Delete project helloworld1" \
-        "oc delete project helloworld1"
+for i in cli-ex{01..05}; do
 
-run_cmd "Delete project helloworld2" \
-        "oc delete project helloworld2"
+  if run_cmd "Check for project $i" "oc get project/${i}" ; then
 
-run_cmd "Delete project helloworld3" \
-        "oc delete project helloworld3"
+    run_cmd "Delete project ${i}" \
+            "oc delete project ${i}"
 
-run_cmd "Delete project helloworld4" \
-        "oc delete project helloworld4"
+  fi
 
-run_cmd "Delete project helloworld5" \
-        "oc delete project helloworld5"
+done
 
-run_cmd "Delete storage pv hello-world" \
-        "oc delete pv hello-world"
+
+##
+##    Check for PV's that need to be deleted as well
+##
+##    NOTE: the PVC's would have been cleaned up by the project being deleted
+##
+
+if  run_cmd "Check for PV to delete" "oc get PersistentVolume/hello-world" ; then
+
+ oc delete PersistentVolume/hello-world
+
+fi
 

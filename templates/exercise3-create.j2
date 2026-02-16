@@ -34,13 +34,13 @@ function run_cmd() {
 
 
 run_cmd "Create a new project" \
-        "oc new-project exercise-hello-world --description='Hello World exercise using NFS storage' --display-name='Exercise: Hello-World'"
+        "oc new-project cli-ex03 --description='CLI exercise to deploy hell-app with NFS storage' --display-name='CLI Exercise 03'"
 
 run_cmd "Deploy application image" \
-        "oc new-app registry.redhat.io/ubi8/httpd-24 --name=hello-world"
+        "oc new-app registry.redhat.io/ubi8/httpd-24 --name=hello-app"
 
 run_cmd "Wait for rollout" \
-        "oc rollout status deployment/hello-world"
+        "oc rollout status deployment/hello-app"
 
 run_cmd "Copy exercise-hello-world.html to nfs export" \
         "cp /usr/local/etc/exercise-hello-world.html {{ workshop_extras.nfs_export }}/hello-world/index.html"
@@ -52,19 +52,26 @@ run_cmd "Create the NFS pv claim..." \
         "oc create -f /usr/local/etc/exercise-hello-world-pvc.yaml"
 
 run_cmd "Configure the app with new storage..." \
-        "oc set volume deployment/hello-world --add --mount-path /var/www/html --type persistentVolumeClaim --claim-name=hello-world-claim"
+        "oc set volume deployment/hello-app --add --mount-path /var/www/html --type persistentVolumeClaim --claim-name=hello-world-claim"
 
 run_cmd "Wait for rollout..." \
-        "oc rollout status deployment/hello-world"
+        "oc rollout status deployment/hello-app"
 
 run_cmd "Expose a route..." \
-        "oc expose service hello-world --hostname=hello-world.apps.{{ workshop_extras.network_fqdn }}"
+        "oc expose service hello-app"
 
+
+##
+##
+##
+
+
+ROUTE=`oc get route --no-headers | awk '{ print $2 }'`
 
 echo ""
 echo "## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - "
 echo "## You can validate the results by running..."
 echo "##"
-echo "##    curl -k http://hello-world.apps.{{ workshop_extras.network_fqdn }}"
+echo "##    curl -k http://$ROUTE"
 echo "##"
 

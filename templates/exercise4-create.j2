@@ -34,7 +34,7 @@ function run_cmd() {
 
 
 run_cmd "Create a new project" \
-        "oc new-project helloworld4 --description='Hello World exercise 4' --display-name='Exercise: Hello-World 4'"
+        "oc new-project cli-ex04 --description='CLI exercise to deploy hello-app from git' --display-name='CLI Exercise 04'"
 
 run_cmd "Deploy application image" \
         "oc new-app registry.access.redhat.com/rhscl/httpd-24-rhel7~https://github.com/xtophd/OCP-Workshop --context-dir=/src/helloworld --name=hello-app"
@@ -50,10 +50,18 @@ run_cmd "Wait for rollout" \
 run_cmd "Expose a route..." \
         "oc expose service hello-app" 
 
+
+##
+##
+##
+
+
+ROUTE=`oc get route --no-headers | awk '{ print $2 }'`
+
 echo ""
 echo "## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - "
 echo "## You can validate the results by running..."
 echo "##"
-echo "##    curl -k http://hello-app-helloworld4.apps.{{ workshop_extras.network_fqdn }}"
+echo "##    curl -k http://$ROUTE"
 echo "##"
 

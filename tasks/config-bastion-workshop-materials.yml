@@ -52,22 +52,26 @@
           - {mode: '0644', src: 'lib-exercise.j2',                 dest: '/usr/local/bin/lib-exercise.sh'}
           - {mode: '0744', src: 'lib-exercise-test.j2',            dest: '/usr/local/bin/lib-exercise-test.sh'}
       
-          - {mode: '0744', src: 'exercise1-deploy.j2',             dest: '/usr/local/bin/exercise1-deploy.sh'}
+          - {mode: '0744', src: 'exercise1-create.j2',             dest: '/usr/local/bin/exercise1-create.sh'}
           - {mode: '0744', src: 'exercise1-patch-scc.j2',          dest: '/usr/local/bin/exercise1-patch-scc.sh'}
           - {mode: '0744', src: 'exercise1-install-helloworld.j2', dest: '/usr/local/bin/exercise1-install-helloworld.sh'}
-          - {mode: '0744', src: 'exercise2-deploy.j2',             dest: '/usr/local/bin/exercise2-deploy.sh'}
+          - {mode: '0744', src: 'exercise1-delete.j2',             dest: '/usr/local/bin/exercise1-delete.sh'}
+          - {mode: '0744', src: 'exercise2-create.j2',             dest: '/usr/local/bin/exercise2-create.sh'}
           - {mode: '0744', src: 'exercise2-install-helloworld.j2', dest: '/usr/local/bin/exercise2-install-helloworld.sh'}
-          - {mode: '0744', src: 'exercise3-deploy.j2',             dest: '/usr/local/bin/exercise3-deploy.sh'}
-          - {mode: '0744', src: 'exercise4-deploy.j2',             dest: '/usr/local/bin/exercise4-deploy.sh'}
-          - {mode: '0744', src: 'exercise5-deploy.j2',             dest: '/usr/local/bin/exercise5-deploy.sh'}
+          - {mode: '0744', src: 'exercise3-create.j2',             dest: '/usr/local/bin/exercise3-create.sh'}
+          - {mode: '0744', src: 'exercise4-create.j2',             dest: '/usr/local/bin/exercise4-create.sh'}
+          - {mode: '0744', src: 'exercise5-create.j2',             dest: '/usr/local/bin/exercise5-create.sh'}
           - {mode: '0744', src: 'exercise6-cleanup.j2',            dest: '/usr/local/bin/exercise6-cleanup.sh'}
       
           - {mode: '0744', src: 'exercise10-install-aap.j2',       dest: '/usr/local/bin/exercise10-install-aap.sh'}
           - {mode: '0744', src: 'exercise10-uninstall-aap.j2',     dest: '/usr/local/bin/exercise10-uninstall-aap.sh'}
           - {mode: '0744', src: 'exercise10-restart-aap.j2',       dest: '/usr/local/bin/exercise10-restart-aap.sh'}
           - {mode: '0744', src: 'exercise10-get-info.j2',          dest: '/usr/local/bin/exercise10-get-info.sh'}
-      
-          - {mode: '0744', src: 'exercise-db-server.j2',           dest: '/usr/local/bin/exercise-db-server.sh'}
+          - {mode: '0744', src: 'exercise10-get-info.j2',          dest: '/usr/local/bin/exercise10-get-info.sh'}
+
+          - {mode: '0744', src: 'exercise-validate-service.j2',    dest: '/usr/local/bin/exercise-validate-service.sh'}
+          - {mode: '0744', src: 'exercise-validate-app.j2',        dest: '/usr/local/bin/exercise-validate-app.sh'}
+          - {mode: '0744', src: 'exercise-rsh.j2',                 dest: '/usr/local/bin/exercise-rsh.sh'}
       
       
       

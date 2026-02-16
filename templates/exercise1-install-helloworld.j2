@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+
 ## This script on snipes the pod name and runs oc cp {src} podname:{dst}
 
 SRC="/usr/local/etc/exercise-hello-world.html"

@@ -45,10 +45,17 @@ run_cmd "Expose a route..." \
         "oc expose service hello-app"
 
 
+##
+##
+##
+
+
+ROUTE=`oc get route --no-headers | awk '{ print $2 }'`
+
 echo ""
 echo "## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - "
 echo "## You can validate the results by running..."
 echo "##"
-echo "##    curl -k http://hello-app-cli-ex01.apps.{{ workshop_extras.network_fqdn }}"
+echo "##    curl -k http://$ROUTE"
 echo "##"
 

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+## This script snipes the route from the project and dumps output via curl
+
+MYROUTE=`oc get routes --no-headers | awk '{ print $2 }'`
+
+curl -s ${MYROUTE}
+
+echo ""
+echo "## ---------- Application Validation ----------"
+echo "## DETERMINED ROUTE: ${MYROUTE}"
+echo "## EXEC: curl -s ${MYROUTE}"
+echo ""
+
