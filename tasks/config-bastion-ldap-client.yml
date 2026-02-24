@@ -1,0 +1,79 @@
+
+
+
+#
+#    Configure bastion as an sssd LDAP client    
+#
+
+
+
+- delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
+  when: 
+    - inventory_hostname in xtoph_ocp4._cluster_bastion
+    - xtoph_ocp4.bastion.ldap_client == true
+    - xtoph_ocp4.identity.type is defined and xtoph_ocp4.identity.type == "ldap"
+
+  block:
+
+      - name: "xtoph_ocp4 : config-bastion-ldap-client : gather facts"
+        setup:
+
+      - name: "xtoph_ocp4 : config-bastion-ldap-client : install ldap client packages [RHEL 8,9 or 10]"
+        yum: 
+          name: openldap-clients,sssd,sssd-ldap,oddjob-mkhomedir,openssl-perl
+          state: installed
+        when:
+          - ansible_distribution_major_version == "8" or
+            ansible_distribution_major_version == "9" or
+            ansible_distribution_major_version == "10"
+
+      - name: "xtoph_ocp4 : config-bastion-ldap-client : deploy sssd config file"
+        template:
+          src: "bastion-sssd-client-config.j2"
+          dest: "/etc/sssd/sssd.conf"
+          owner: root
+          group: root
+          mode: 0600
+
+      - name: "xtoph_ocp4 : config-bastion-ldap-client : deploy ldap config file"
+        template:
+          src: "bastion-ldap-client-config.j2"
+          dest: "/etc/openldap/ldap.conf"
+          owner: root
+          group: root
+          mode: 0600
+
+      - name: "xtoph_ocp4 : config-bastion-ldap-client : deploy sudo file"
+        template:
+          src: "bastion-ldap-sudoers.j2"
+          dest: "/etc/sudoers.d/ocp4-workshop-ldap"
+          owner: root
+          group: root
+          mode: 0600
+
+      - name: "xtoph_ocp4 : config-bastion-ldap-client : run authselect"
+        shell:
+          cmd: |
+            authselect select sssd with-mkhomedir --force
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : start/restart sssd"
+        service:
+           name: sssd
+           state: restarted
+           enabled: yes
+           masked: no
+
+      - name: "xtoph_ocp4 : config-bastion-pxe : start/restart oddjobd"
+        service:
+           name: oddjobd
+           state: restarted
+           enabled: yes
+           masked: no
+
+  vars:
+    ldap_uri:           "{{ xtoph_ocp4.identity.uri }}"
+    ldap_sudo_group:    "{{ xtoph_ocp4.identity.sudo_group }}"
+    ldap_base_dn:       "{{ xtoph_ocp4.identity.base_dn }}"
+    ldap_bind_dn:       "{{ xtoph_ocp4.identity.bind_dn }}"
+    ldap_bind_pw:       "{{ ldap_credentials.bind_pw }}"
+

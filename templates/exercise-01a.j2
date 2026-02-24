@@ -1,0 +1,32 @@
+#!/bin/bash
+
+export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+
+##
+## Include the lib-exercise functions
+##
+
+. $(dirname "$0")/lib-exercise.sh
+
+
+
+exercise_cmd "Create a new project" \
+            "oc new-project cli-ex01 --description='CLI exercise to deploy hello-world container' --display-name='CLI Exercise 01'"
+
+exercise_cmd "Deploy application image" \
+            "oc new-app registry.redhat.io/ubi8/httpd-24 --name=hello-app"
+
+exercise_cmd "Wait for rollout" \
+            "oc rollout status deployment/hello-app"
+
+exercise_cmd "Expose a route..." \
+            "oc expose service hello-app"
+
+
+
+ROUTE=`oc get route --no-headers | awk '{ print $2 }'`
+
+exercise_cmd "Validate the results..." \
+            "curl -k http://$ROUTE"
+
+

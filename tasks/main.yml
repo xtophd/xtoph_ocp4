@@ -26,6 +26,7 @@
           - { varname: 'default_assets_openshift', filename: 'xtoph_ocp4.default.assets.openshift.yml' }
           - { varname: 'default_assets_rhcos',     filename: 'xtoph_ocp4.default.assets.rhcos.yml' }
           - { varname: 'default_assets_matchbox',  filename: 'xtoph_ocp4.default.assets.matchbox.yml' }
+          - { varname: 'default_identity',         filename: 'xtoph_ocp4.default.identity.yml' }
       
       - name: "main.yml : loading custom vars from {{ playbook_dir }}"
         include_vars:
@@ -41,6 +42,7 @@
           - { varname: 'custom_assets_openshift', filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4-assets-openshift.yml") }}' }
           - { varname: 'custom_assets_rhcos',     filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4-assets-rhcos.yml") }}' }
           - { varname: 'custom_assets_matchbox',  filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4-assets-matchbox.yml") }}' }
+          - { varname: 'custom_identity',         filename: '{{ lookup("fileglob","{{ playbook_dir }}/config/xtoph-ocp4-identity.yml") }}' }
       
       
       
@@ -165,6 +167,22 @@
           xtoph_ocp4: "{{ xtoph_ocp4 | combine({'matchbox_assets': {item.key: item.value}}, recursive=true) }}"
         loop: "{{ lookup('dict', custom_assets_matchbox[xtoph_ocp4.ocp.version] | default({}), wantlist=True ) }}"
         when: custom_assets_matchbox[xtoph_ocp4.ocp.version] is defined
+
+      ##
+      ##    xtoph_ocp4.identity ... graft identity providers 
+      ##                            overlay custom_identity
+      
+
+      - name: "main.yml : graft identity details => xtoph_ocp4.identity"
+        set_fact:
+          xtoph_ocp4: "{{ xtoph_ocp4 | combine({'identity': default_identity[xtoph_ocp4._identity_profile] }, recursive=true) }}"
+        when: default_identity[xtoph_ocp4._identity_profile] is defined
+      
+      - name: "main.yml : apply custom identity => xtoph_ocp4.identity"
+        set_fact:
+          xtoph_ocp4: "{{ xtoph_ocp4 | combine({'identity': {item.key: item.value}}, recursive=true) }}"
+        loop: "{{ lookup('dict', custom_identity[xtoph_ocp4._identity_profile] | default({}), wantlist=True ) }}"
+        when: custom_identity[xtoph_ocp4._identity_profile] is defined
 
 
 

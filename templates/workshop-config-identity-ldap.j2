@@ -1,0 +1,23 @@
+#!/bin/bash
+
+export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+
+echo ""
+echo "Configuring Identity Provider (LDAP)"
+echo "----------------------------------------"
+
+oc apply -f /usr/local/etc/workshop-identity-ldap.yaml
+
+echo ""
+echo "Delete openshift-authentication pods (reload)"
+echo "-------------------------------------------------"
+oc delete --all pods -n openshift-authentication
+
+echo ""
+echo "##"
+echo "## NOTE:  Users will not appear in Openshift until"
+echo "##        they log in for the first time!!! So if you"
+echo "##        added users, don't flip out that they are"
+echo "##        not listed under User-Management right away..."
+echo "##"
+echo ""

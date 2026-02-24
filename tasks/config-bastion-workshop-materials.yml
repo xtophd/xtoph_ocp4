@@ -52,16 +52,15 @@
           - {mode: '0644', src: 'lib-exercise.j2',                 dest: '/usr/local/bin/lib-exercise.sh'}
           - {mode: '0744', src: 'lib-exercise-test.j2',            dest: '/usr/local/bin/lib-exercise-test.sh'}
       
-          - {mode: '0744', src: 'exercise1-create.j2',             dest: '/usr/local/bin/exercise1-create.sh'}
-          - {mode: '0744', src: 'exercise1-patch-scc.j2',          dest: '/usr/local/bin/exercise1-patch-scc.sh'}
-          - {mode: '0744', src: 'exercise1-install-helloworld.j2', dest: '/usr/local/bin/exercise1-install-helloworld.sh'}
-          - {mode: '0744', src: 'exercise1-delete.j2',             dest: '/usr/local/bin/exercise1-delete.sh'}
-          - {mode: '0744', src: 'exercise2-create.j2',             dest: '/usr/local/bin/exercise2-create.sh'}
-          - {mode: '0744', src: 'exercise2-install-helloworld.j2', dest: '/usr/local/bin/exercise2-install-helloworld.sh'}
-          - {mode: '0744', src: 'exercise3-create.j2',             dest: '/usr/local/bin/exercise3-create.sh'}
-          - {mode: '0744', src: 'exercise4-create.j2',             dest: '/usr/local/bin/exercise4-create.sh'}
-          - {mode: '0744', src: 'exercise5-create.j2',             dest: '/usr/local/bin/exercise5-create.sh'}
-          - {mode: '0744', src: 'exercise6-cleanup.j2',            dest: '/usr/local/bin/exercise6-cleanup.sh'}
+          - {mode: '0744', src: 'exercise-01a.j2',                 dest: '/usr/local/bin/exercise-01a.sh'}
+          - {mode: '0744', src: 'exercise-01b.j2',                 dest: '/usr/local/bin/exercise-01b.sh'}
+          - {mode: '0744', src: 'exercise-02.j2',                  dest: '/usr/local/bin/exercise-02.sh'}
+          - {mode: '0744', src: 'exercise-03.j2',                  dest: '/usr/local/bin/exercise-03.sh'}
+          - {mode: '0744', src: 'exercise-04.j2',                  dest: '/usr/local/bin/exercise-04.sh'}
+          - {mode: '0744', src: 'exercise-05.j2',                  dest: '/usr/local/bin/exercise-05.sh'}
+          - {mode: '0744', src: 'exercise-07.j2',                  dest: '/usr/local/bin/exercise-07.sh'}
+
+          - {mode: '0744', src: 'exercise-cleanup.j2',             dest: '/usr/local/bin/exercise-cleanup.sh'}
       
           - {mode: '0744', src: 'exercise10-install-aap.j2',       dest: '/usr/local/bin/exercise10-install-aap.sh'}
           - {mode: '0744', src: 'exercise10-uninstall-aap.j2',     dest: '/usr/local/bin/exercise10-uninstall-aap.sh'}
@@ -84,7 +83,8 @@
           group: root
           mode: 0744
         with_items:
-          - {src: 'workshop-config-identity.j2', dest: '/usr/local/bin/workshop-config-identity.sh'}
+          - {src: 'workshop-config-identity-htpasswd.j2', dest: '/usr/local/bin/workshop-config-identity-htpasswd.sh'}
+          - {src: 'workshop-config-identity-ldap.j2', dest: '/usr/local/bin/workshop-config-identity-ldap.sh'}
         when: workshopuser_username is defined
       
       
@@ -102,15 +102,17 @@
           group: root
           mode: 0644
         with_items:
-          - {src: 'workshop-yaml-identity.j2',    dest: '/usr/local/etc/workshop-identity.yaml'}
-          - {src: 'workshop-users-htpasswd.j2',   dest: '/usr/local/etc/workshop-users.htpasswd'}
-          - {src: 'exercise-hello-world-pv.j2',   dest: '/usr/local/etc/exercise-hello-world-pv.yaml'}
-          - {src: 'exercise-hello-world-pvc.j2',  dest: '/usr/local/etc/exercise-hello-world-pvc.yaml'}
-          - {src: 'exercise-hello-world-html.j2', dest: '/usr/local/etc/exercise-hello-world.html'}
-          - {src: 'workshop-yaml-registryPV.j2',  dest: '/usr/local/etc/workshop-registryPV.yaml'}
-          - {src: 'exercise10-aap-pv.j2',         dest: '/usr/local/etc/exercise10-aap-pv.yaml'}
-          - {src: 'exercise10-aap-sub1.j2',       dest: '/usr/local/etc/exercise10-aap-sub1.yaml'}
-          - {src: 'exercise10-aap-sub2.j2',       dest: '/usr/local/etc/exercise10-aap-sub2.yaml'}
+          - {src: 'workshop-yaml-identity-htpasswd.j2', dest: '/usr/local/etc/workshop-identity-htpasswd.yaml'}
+          - {src: 'workshop-yaml-identity-ldap.j2',     dest: '/usr/local/etc/workshop-identity-ldap.yaml'}
+          - {src: 'workshop-users-htpasswd.j2',         dest: '/usr/local/etc/workshop-users.htpasswd'}
+          - {src: 'exercise-03-pv.j2',                  dest: '/usr/local/etc/exercise-03-pv.yaml'}
+          - {src: 'exercise-03-pvc.j2',                 dest: '/usr/local/etc/exercise-03-pvc.yaml'}
+          - {src: 'exercise-hello-world-html.j2',       dest: '/usr/local/etc/exercise-hello-world.html'}
+          - {src: 'exercise-07-pvc.j2',                 dest: '/usr/local/etc/exercise-07-pvc.yaml'}
+          - {src: 'workshop-yaml-registryPV.j2',        dest: '/usr/local/etc/workshop-registryPV.yaml'}
+          - {src: 'exercise10-aap-pv.j2',               dest: '/usr/local/etc/exercise10-aap-pv.yaml'}
+          - {src: 'exercise10-aap-sub1.j2',             dest: '/usr/local/etc/exercise10-aap-sub1.yaml'}
+          - {src: 'exercise10-aap-sub2.j2',             dest: '/usr/local/etc/exercise10-aap-sub2.yaml'}
 #          - {src: 'workshop-config-chrony-machineconfig-masters.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-masters.yaml'}
 #          - {src: 'workshop-config-chrony-machineconfig-workers.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-workers.yaml'}
 

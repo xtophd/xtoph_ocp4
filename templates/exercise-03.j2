@@ -1,0 +1,61 @@
+#!/bin/bash
+
+export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+
+##
+## Include the lib-exercise functions
+##
+
+. $(dirname "$0")/lib-exercise.sh
+
+
+
+if oc get pv --no-headers ex03-pv > /dev/null; then
+    echo "WARNING: Please resolve/delete pre-existing pv ex03-pv"
+    exit
+fi
+
+
+
+exercise_cmd "Create a new project" \
+             "oc new-project cli-ex03 --description='CLI exercise to deploy hell-app with NFS storage' --display-name='CLI Exercise 03'"
+
+exercise_cmd "Deploy application image" \
+             "oc new-app registry.redhat.io/ubi8/httpd-24 --name=hello-app"
+
+exercise_cmd "Wait for rollout" \
+             "oc rollout status deployment/hello-app"
+
+exercise_cmd "Copy exercise-hello-world.html to nfs export" \
+             "cp /usr/local/etc/exercise-hello-world.html {{ workshop_extras.nfs_export }}/hello-world/index.html"
+
+exercise_cmd "Here is what the PV yaml looks like..." \
+             "cat /usr/local/etc/exercise-03-pv.yaml"
+
+exercise_cmd "Create the NFS PV" \
+             "oc create -f /usr/local/etc/exercise-03-pv.yaml"
+
+exercise_cmd "Here is what the PVC (claim) yaml looks like..." \
+             "cat /usr/local/etc/exercise-03-pvc.yaml"
+
+exercise_cmd "Create the NFS PVC (claim)..." \
+             "oc create -f /usr/local/etc/exercise-03-pvc.yaml"
+
+exercise_cmd "Configure the app with new storage..." \
+             "oc set volume deployment/hello-app --add --mount-path /var/www/html --type persistentVolumeClaim --claim-name=ex03-pvc"
+
+exercise_cmd "Wait for rollout..." \
+             "oc rollout status deployment/hello-app"
+
+exercise_cmd "Expose a route..." \
+             "oc expose service hello-app"
+
+
+
+ROUTE=`oc get route --no-headers | awk '{ print $2 }'`
+
+exercise_cmd "Validate the results..." \
+            "curl -k http://$ROUTE"
+
+
+

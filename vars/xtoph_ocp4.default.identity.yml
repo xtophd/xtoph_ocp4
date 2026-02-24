@@ -1,0 +1,27 @@
+##
+## IDENTIFY PROFILES
+##
+
+workshop-vars:
+
+    type:        "ldap"
+    uri:         "{{ workshop_vars.ldap_uri      | default('') }}"
+    base_dn:     "{{ workshop_vars.ldap_base_dn  | default('') }}"
+    bind_dn:     "{{ workshop_vars.ldap_bind_dn  | default('') }}"
+    bind_pw:     "{{ workshop_vars.ldap_bind_pw  | default('') }}"
+    sudo_group:  "{{ workshop_vars.ldap_sudo_grp | default('') }}"
+    cert:        "{{ workshop_vars.ldap_cert     | default('') }}"
+
+ldap:
+
+    type:       "ldap"
+    uri:        ""
+    base_dn:    ""
+    bind_dn:    ""
+    bind_pw:    ""
+    cert:       ""
+
+htpasswd:
+
+    type:       "htpasswd"
+

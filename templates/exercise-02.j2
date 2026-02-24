@@ -1,0 +1,56 @@
+#!/bin/bash
+
+export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+
+##
+## Include the lib-exercise functions
+##
+
+. $(dirname "$0")/lib-exercise.sh
+
+
+
+exercise_cmd "Create a new project" \
+             "oc new-project cli-ex02 --description='CLI exercise to deploy hello-app with emptyDir storage' --display-name='CLI Exercise 02'"
+
+exercise_cmd "Deploy application image" \
+             "oc new-app registry.redhat.io/ubi8/httpd-24 --name=hello-app"
+
+exercise_cmd "Wait for rollout" \
+             "oc rollout status deployment/hello-app"
+
+exercise_cmd "Create the emptyDir volume" \
+             "oc set volume deployment/hello-app --add --mount-path /var/www/html --type emptyDir"
+
+exercise_cmd "Wait for rollout..." \
+             "oc rollout status deployment/hello-app"
+
+
+
+SRC="/usr/local/etc/exercise-hello-world.html"
+DST="/var/www/html/index.html"
+
+for PODNAME in `oc get pods --no-headers | grep -i 'running' | awk '{ print $1 }'` ; do
+
+    re='^.*-(.*)$'
+
+    if [[ ${PODNAME} =~ ${re} ]] && \
+        [ "${BASH_REMATCH[1]}" != "deploy" ] && \
+        [ "${BASH_REMATCH[1]}" != "build" ] ; then
+
+        exercise_cmd "Copy hello-world source to pod..." \
+                     "oc cp ${SRC} ${PODNAME}:${DST}"
+
+    fi
+done
+
+
+
+exercise_cmd "Expose a route..." \
+             "oc expose service hello-app"
+
+ROUTE=`oc get route --no-headers | awk '{ print $2 }'`
+
+exercise_cmd "Validate the results..." \
+             "curl -k http://$ROUTE"
+

@@ -18,6 +18,9 @@ function exercise_cmd() {
   echo "## COMMAND: $cmd"
   echo ""
 
+  read -s -p "Press [ENTER] to execute..."
+  echo ""
+
   eval $cmd
 
   rc="$?"

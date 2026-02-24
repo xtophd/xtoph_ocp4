@@ -34,9 +34,11 @@ function run_cmd() {
 run_cmd "Change current project namespace to default" \
         "oc project default"
 
-for i in cli-ex{01..05}; do
+for i in cli-ex{01..07}; do
 
-  if run_cmd "Check for project $i" "oc get project/${i}" ; then
+  echo "Checking for project ${i}"
+
+  if oc get project/${i} > /dev/null 2>&1; then
 
     run_cmd "Delete project ${i}" \
             "oc delete project ${i}"
@@ -52,9 +54,11 @@ done
 ##    NOTE: the PVC's would have been cleaned up by the project being deleted
 ##
 
-if  run_cmd "Check for PV to delete" "oc get PersistentVolume/hello-world" ; then
+echo "Checking for PV"
 
- oc delete PersistentVolume/hello-world
+if  oc get PersistentVolume/ex03-pv > /dev/null 2>&1 ; then
+
+ oc delete PersistentVolume/exo3-pv
 
 fi
 

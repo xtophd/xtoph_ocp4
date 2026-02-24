@@ -92,6 +92,11 @@
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "ntp"
     - xtoph_ocp4.bastion.ntp == true
 
+- include_tasks: "config-bastion-ldap-client.yml"
+  when: 
+    - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "ldap"
+    - xtoph_ocp4.bastion.ldap_client == true
+
 - include_tasks: "config-bastion-tests.yml"
   when: 
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "tests"

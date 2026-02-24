@@ -275,12 +275,39 @@
     
     
     
-      - name: "xtoph_ocp4 : postinstall-cluster : watch until availability for all clusteroperators is 'True', approve CSRs as needed"
+      - name: "xtoph_ocp4 : postinstall-cluster : watch until availability for all current clusteroperators is 'True', approve CSRs as needed"
         run_once: true
         shell:
           cmd: |
             export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
             {{ oc_cmd }} get clusteroperators --no-headers | awk '{print $3}' | grep -i false 
+            if [[ $? == 0 ]]; then 
+              for i in `{{ oc_cmd }} get csr | grep -i pending | awk '{print $1}'`; do 
+                {{ oc_cmd }} adm certificate approve $i
+                sleep 1
+              done
+              exit 1 
+            else 
+              exit 0 
+            fi
+        register: result
+        until:  result.rc == 0
+        retries: 600
+        delay: 5
+
+
+      ##
+      ##     NOTE: 
+      ##       I am not sure if all openshift deployments have a console, so 
+      ##       this watch many not be valid in all circumstances.
+      ##
+
+      - name: "xtoph_ocp4 : postinstall-cluster : watch until availability of console is 'True', approve CSRs as needed"
+        run_once: true
+        shell:
+          cmd: |
+            export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+            {{ oc_cmd }} get clusteroperators --no-headers console | awk '{print $3}' | grep -i true 
             if [[ $? == 0 ]]; then 
               for i in `{{ oc_cmd }} get csr | grep -i pending | awk '{print $1}'`; do 
                 {{ oc_cmd }} adm certificate approve $i

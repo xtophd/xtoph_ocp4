@@ -19,6 +19,7 @@
   httpd:              "{{ workshop_vars.bastion.httpd              | default(False)  }}"
   httpd_port:         "{{ workshop_vars.bastion.httpd_port         | default('8080') }}"
   iso:                "{{ workshop_vars.bastion.iso                | default(False)  }}"
+  ldap_client:        "{{ workshop_vars.bastion.ldap_client        | default(False)  }}"
   matchbox:           "{{ workshop_vars.bastion.matchbox           | default(True)   }}"
   matchbox_port:      "{{ workshop_vars.bastion.matchbox_port      | default('8008') }}"
   nfs:                "{{ workshop_vars.bastion.nfs                | default(True)   }}"
@@ -54,6 +55,7 @@
   httpd:              False
   httpd_port:         "8080"
   iso:                False
+  ldap_client:        False
   matchbox:           True
   matchbox_port:      "8008"
   openshift:          True

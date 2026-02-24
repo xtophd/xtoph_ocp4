@@ -1,0 +1,45 @@
+#!/bin/bash
+
+export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+
+##
+## Include the lib-exercise functions
+##
+
+. $(dirname "$0")/lib-exercise.sh
+
+
+
+REGISTRY_STATE=`oc get configs.imageregistry.operator.openshift.io/cluster -o=jsonpath='{.spec.managementState}'`
+
+if [[ "${REGISTRY_STATE}" != "Managed" ]] ; then
+    echo "WARNING: Please resolve prerequisite openshift-image-registry must be in managed state"
+    exit
+fi
+
+
+
+exercise_cmd "Create a new project" \
+             "oc new-project cli-ex04 --description='CLI exercise to deploy hello-app from git' --display-name='CLI Exercise 04'"
+
+exercise_cmd "Deploy application image" \
+             "oc new-app registry.access.redhat.com/rhscl/httpd-24-rhel7~https://github.com/xtophd/OCP-Workshop --context-dir=/src/helloworld --name=hello-app"
+
+exercise_wait 3
+
+exercise_cmd "Watch build logs" \
+             "oc logs -f bc/hello-app"
+
+exercise_cmd "Wait for rollout" \
+             "oc rollout status deployment/hello-app"
+
+exercise_cmd "Expose a route..." \
+             "oc expose service hello-app"
+
+
+
+ROUTE=`oc get route --no-headers | awk '{ print $2 }'`
+
+exercise_cmd "Validate the results..." \
+             "curl -k http://$ROUTE"
+

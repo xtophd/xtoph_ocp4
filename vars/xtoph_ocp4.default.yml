@@ -8,6 +8,8 @@ _ocp_profile:      "--required--"
 _network_profile:  "--required--"
 _rhcos_profile:    "--required--"
 
+_identity_profile: ""
+
 _cluster_bastion:     "{{ groups['myBastion']   }}"
 _cluster_bootstrap:   "{{ groups['myBootstrap'] }}"
 _cluster_masters:     "{{ groups['myMasters']   }}"

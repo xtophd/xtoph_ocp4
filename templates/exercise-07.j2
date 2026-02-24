@@ -1,0 +1,64 @@
+#!/bin/bash
+
+export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+
+##
+## Include the lib-exercise functions
+##
+
+. $(dirname "$0")/lib-exercise.sh
+
+
+
+exercise_cmd "Create a new project" \
+             "oc new-project cli-ex07 --description='CLI exercise to deploy hello-app with LVM storage' --display-name='CLI Exercise 07'"
+
+exercise_cmd "Deploy application image" \
+             "oc new-app registry.redhat.io/ubi8/httpd-24 --name=hello-app"
+
+exercise_cmd "Wait for rollout" \
+             "oc rollout status deployment/hello-app"
+
+exercise_cmd "Here is what the LVM PVC (claim) yaml looks like..." \
+             "cat /usr/local/etc/exercise-07-pvc.yaml"
+
+exercise_cmd "Create the LVM PVC (claim)..." \
+             "oc create --namespace cli-ex07 -f /usr/local/etc/exercise-07-pvc.yaml"
+
+exercise_cmd "Configure the app with new storage..." \
+             "oc set volume deployment/hello-app --add --mount-path /var/www/html --type persistentVolumeClaim --claim-name=lvm-file-1"
+
+exercise_cmd "Wait for rollout..." \
+             "oc rollout status deployment/hello-app"
+
+#--
+
+SRC="/usr/local/etc/exercise-hello-world.html"
+DST="/var/www/html/index.html"
+
+for PODNAME in `oc get pods --no-headers | grep -i 'running' | awk '{ print $1 }'` ; do
+
+    re='^.*-(.*)$'
+
+    if [[ ${PODNAME} =~ ${re} ]] && \
+        [ "${BASH_REMATCH[1]}" != "deploy" ] && \
+        [ "${BASH_REMATCH[1]}" != "build" ] ; then
+
+        exercise_cmd "Copy hello-world source to pod..." \
+                     "oc cp ${SRC} ${PODNAME}:${DST}"
+
+    fi
+done
+
+#--
+
+exercise_cmd "Expose a route..." \
+             "oc expose service hello-app"
+
+#--
+
+ROUTE=`oc get route --no-headers | awk '{ print $2 }'`
+
+exercise_cmd "Validate the results..." \
+             "curl -k http://$ROUTE"
+
