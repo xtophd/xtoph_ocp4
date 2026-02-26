@@ -1,11 +1,4 @@
 ---
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    openshift.io/cluster-monitoring: "true"
-  name: ansible-automation-platform
----
 apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
@@ -21,8 +14,9 @@ metadata:
   name: ansible-automation-platform
   namespace: ansible-automation-platform
 spec:
-  channel: 'stable-2.1'
+  channel: 'stable-2.6'
   installPlanApproval: Automatic
   name: ansible-automation-platform-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
+---
