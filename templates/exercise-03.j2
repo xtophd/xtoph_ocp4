@@ -18,7 +18,7 @@ fi
 
 
 exercise_cmd "Create a new project" \
-             "oc new-project cli-ex03 --description='CLI exercise to deploy hell-app with NFS storage' --display-name='CLI Exercise 03'"
+             "oc new-project cli-ex03 --description='CLI exercise to deploy hello-app with NFS storage' --display-name='CLI Exercise 03'"
 
 exercise_cmd "Deploy application image" \
              "oc new-app registry.redhat.io/ubi8/httpd-24 --name=hello-app"

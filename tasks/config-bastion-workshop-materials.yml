@@ -62,11 +62,10 @@
 
           - {mode: '0744', src: 'exercise-cleanup.j2',             dest: '/usr/local/bin/exercise-cleanup.sh'}
       
-          - {mode: '0744', src: 'exercise10-install-aap.j2',       dest: '/usr/local/bin/exercise10-install-aap.sh'}
-          - {mode: '0744', src: 'exercise10-uninstall-aap.j2',     dest: '/usr/local/bin/exercise10-uninstall-aap.sh'}
-          - {mode: '0744', src: 'exercise10-restart-aap.j2',       dest: '/usr/local/bin/exercise10-restart-aap.sh'}
-          - {mode: '0744', src: 'exercise10-get-info.j2',          dest: '/usr/local/bin/exercise10-get-info.sh'}
-          - {mode: '0744', src: 'exercise10-get-info.j2',          dest: '/usr/local/bin/exercise10-get-info.sh'}
+          - {mode: '0744', src: 'exercise-10a.j2',                 dest: '/usr/local/bin/exercise-10a.sh'}
+          - {mode: '0744', src: 'exercise-10b.j2',                 dest: '/usr/local/bin/exercise-10b.sh'}
+          - {mode: '0744', src: 'exercise-10c.j2',                 dest: '/usr/local/bin/exercise-10c.sh'}
+          - {mode: '0744', src: 'exercise-10-uninstall.j2',        dest: '/usr/local/bin/exercise-10-uninstall.sh'}
 
           - {mode: '0744', src: 'exercise-validate-service.j2',    dest: '/usr/local/bin/exercise-validate-service.sh'}
           - {mode: '0744', src: 'exercise-validate-app.j2',        dest: '/usr/local/bin/exercise-validate-app.sh'}
@@ -110,9 +109,9 @@
           - {src: 'exercise-hello-world-html.j2',       dest: '/usr/local/etc/exercise-hello-world.html'}
           - {src: 'exercise-07-pvc.j2',                 dest: '/usr/local/etc/exercise-07-pvc.yaml'}
           - {src: 'workshop-yaml-registryPV.j2',        dest: '/usr/local/etc/workshop-registryPV.yaml'}
-          - {src: 'exercise10-aap-pv.j2',               dest: '/usr/local/etc/exercise10-aap-pv.yaml'}
-          - {src: 'exercise10-aap-sub1.j2',             dest: '/usr/local/etc/exercise10-aap-sub1.yaml'}
-          - {src: 'exercise10-aap-sub2.j2',             dest: '/usr/local/etc/exercise10-aap-sub2.yaml'}
+          - {src: 'exercise-10-pv.j2',                  dest: '/usr/local/etc/exercise-10-pv.yaml'}
+          - {src: 'exercise-10-aap-sub1.j2',            dest: '/usr/local/etc/exercise-10-aap-sub1.yaml'}
+          - {src: 'exercise-10-aap-sub2.j2',            dest: '/usr/local/etc/exercise-10-aap-sub2.yaml'}
 #          - {src: 'workshop-config-chrony-machineconfig-masters.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-masters.yaml'}
 #          - {src: 'workshop-config-chrony-machineconfig-workers.j2',      dest: '/usr/local/etc/workshop-chrony-machineconfig-workers.yaml'}
 
