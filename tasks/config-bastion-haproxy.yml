@@ -132,7 +132,7 @@
           - p_port:     "6443"
           - p_order:    "25"
           - p_name:     "{{ inventory_hostname_short }}"
-          - p_addr:     "{{ h_pubIP }}"
+          - p_addr:     "{{ h_netIP }}"
         template:
           src: "haproxy-host-entry.j2"
           dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}-{{ p_name }}.cfg"
@@ -169,7 +169,7 @@
           - p_port:     "22623"
           - p_order:    "35"
           - p_name:     "{{ inventory_hostname_short }}"
-          - p_addr:     "{{ h_pubIP }}"
+          - p_addr:     "{{ h_netIP }}"
         template:
           src: "haproxy-host-entry.j2"
           dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}-{{ p_name }}.cfg"
@@ -228,7 +228,7 @@
           - p_order:    "45"
 #          - p_item:     "{{ item }}"
           - p_name:     "{{ inventory_hostname_short }}"
-          - p_addr:     "{{ h_pubIP }}"
+          - p_addr:     "{{ h_netIP }}"
         template:
           src: "haproxy-host-entry.j2"
           dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}-{{ p_name }}.cfg"
@@ -248,7 +248,7 @@
           - p_order:    "55"
 #          - p_item:     "{{ item }}"
           - p_name:     "{{ inventory_hostname_short }}"
-          - p_addr:     "{{ h_pubIP }}"
+          - p_addr:     "{{ h_netIP }}"
         template:
           src: "haproxy-host-entry.j2"
           dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}-{{ p_name }}.cfg"

@@ -1,5 +1,5 @@
 "workshop-vars":
-  network_id:   "{{ workshop_vars.network_network }}"
+  network_id:   "{{ workshop_vars.network_id }}"
   gateway:      "{{ workshop_vars.network_gateway }}"
   nameserver:   "{{ workshop_vars.network_nameserver }}"
   timeserver:   "{{ workshop_vars.network_timeserver }}"

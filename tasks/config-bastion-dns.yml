@@ -145,7 +145,7 @@
         run_once: false
         lineinfile:
           dest:   "/etc/hosts"
-          regexp: "{{ h_pubIP }} .*$"
+          regexp: "{{ h_netIP }} .*$"
           state:  absent
 
       - name: "xtoph_ocp4 : config-bastion-dns : cleanup conflicting name in /etc/hosts"
@@ -161,7 +161,7 @@
         run_once: false
         lineinfile:
           dest:   "/etc/hosts"
-          line:   "{{ h_pubIP }} {{ inventory_hostname }}"
+          line:   "{{ h_netIP }} {{ inventory_hostname }}"
           state:  present
           insertbefore: "^127.0.0.1.*"
 
@@ -177,7 +177,7 @@
     
       - name: "xtoph_ocp4 : config-bastion-dns : deploy CLUSTER ETCD srv entries for OCP versions < 4.4"
         vars:
-          - p_addr:        "{{ hostvars[item]['h_pubIP'] }}"
+          - p_addr:        "{{ hostvars[item]['h_netIP'] }}"
           - p_domain:      "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
           - p_etcdName:    "etcd-{{ p_index }}"
         template:

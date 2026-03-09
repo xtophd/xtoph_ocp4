@@ -184,7 +184,7 @@
     - t_dns:         "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
     - t_dev:         "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):.*','\\1') }}"
     - t_ip_dhcp:     "{{t_dev }}:dhcp"
-    - t_ip_static:   "{{ h_pubIP  }}::{{ xtoph_ocp4.network.gateway }}:{{ xtoph_ocp4.network.gateway }}:{{ inventory_hostname }}:{{ t_dev }}:none:{{ t_dns }}"
+    - t_ip_static:   "{{ h_netIP  }}::{{ xtoph_ocp4.network.gateway }}:{{ xtoph_ocp4.network.gateway }}:{{ inventory_hostname }}:{{ t_dev }}:none:{{ t_dns }}"
     - t_ip:          "{% if xtoph_ocp4.rhcos.nic_mode == 'dhcp' %}{{ t_ip_dhcp }}{% else %}{{ t_ip_static }}{% endif %}"
 
     - t_bios:        "{{ xtoph_ocp4.rhcos_assets.bios    | default('') }}"

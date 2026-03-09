@@ -266,8 +266,8 @@
 
   vars:
     - p_name:      "{{ inventory_hostname_short }}"
-    - p_addr:      "{{ h_pubIP  }}"
-    - p_mac:       "{{ h_pubMAC }}"
+    - p_addr:      "{{ h_netIP  }}"
+    - p_mac:       "{{ h_netMAC }}"
     - p_nextsvr:   "{{ xtoph_ocp4.bastion.host_ip }}"
     - p_network:   "{{ xtoph_ocp4.network.network_id }}"
     - p_netmask:   "{{ xtoph_ocp4.network.netmask }}"

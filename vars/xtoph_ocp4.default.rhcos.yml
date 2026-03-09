@@ -5,7 +5,7 @@
   bond_dev:         "{{ h_rhcosBOND     | default('')  }}"
   nic_dev:          "{{ h_rhcosNIC      | default('dhcp') }}"
   nic_mode:         "{{ h_rhcosNICmode  | default('dhcp') }}"
-  nic_mac:          "{{ h_pubMAC        | default('--required--') }}"
+  nic_mac:          "{{ h_netMAC        | default('--required--') }}"
   usb_delay:        "{{ h_rhcosUSBdelay | default('') }}"
   kernel_opts:      "{{ h_kernelOPTS    | default('') }}"
 

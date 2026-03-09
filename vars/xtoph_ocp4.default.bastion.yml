@@ -1,5 +1,5 @@
 "workshop-vars":
-  host_ip:            "{{ hostvars[groups['myBastion'][0]].h_pubIP }}"
+  host_ip:            "{{ hostvars[groups['myBastion'][0]].h_netIP }}"
   host_name:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }}"
   host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname }}"
 
@@ -35,7 +35,7 @@
 
 
 "default":
-  host_ip:            "{{ hostvars[groups['myBastion'][0]].h_pubIP }} | default{'-- required --'}"
+  host_ip:            "{{ hostvars[groups['myBastion'][0]].h_netIP }} | default{'-- required --'}"
   host_name:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname_short }} | default{'-- required --'}"
   host_fqdn:          "{{ hostvars[groups['myBastion'][0]].inventory_hostname }} | default{'-- required --'}"
 

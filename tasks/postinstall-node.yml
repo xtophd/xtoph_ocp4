@@ -40,7 +40,7 @@
         vars:
           - p_item:      "{{ inventory_hostname }}"
           - p_name:      "{{ inventory_hostname_short }}"
-          - p_addr:      "{{ h_pubIP }}"
+          - p_addr:      "{{ h_netIP }}"
           - p_fqdn:      "{{ p_name }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
           - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
           - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
@@ -58,7 +58,7 @@
         vars:
           - p_item:      "{{ inventory_hostname }}"
           - p_name:      "{{ inventory_hostname_short }}"
-          - p_addr:      "{{ h_pubIP }}"
+          - p_addr:      "{{ h_netIP }}"
           - p_fqdn:      "{{ p_name }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
           - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
           - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"

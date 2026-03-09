@@ -185,7 +185,7 @@
 
             - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) :  wait for config-service shutdown on bootstrap"
               wait_for:
-                host: "{{ hostvars[item]['h_pubIP'] }}"
+                host: "{{ hostvars[item]['h_netIP'] }}"
                 connect_timeout: 5
                 delay: 3
                 port: 22623
@@ -201,7 +201,7 @@
 
             - name: "xtoph_ocp4 : preinstall-node (bootstrap-flop) :  wait for api-service shutdown on bootstrap"
               wait_for:
-                host: "{{ hostvars[item]['h_pubIP'] }}"
+                host: "{{ hostvars[item]['h_netIP'] }}"
                 connect_timeout: 5
                 delay: 3
                 port: 6443
@@ -328,7 +328,7 @@
       
             - name: "xtoph_ocp4 : preinstall-node : (worker) wait for availability of config-server on masters"
               wait_for:
-                host: "{{ hostvars[item]['h_pubIP'] }}"
+                host: "{{ hostvars[item]['h_netIP'] }}"
                 connect_timeout: 5
                 delay: 3
                 port: 22623

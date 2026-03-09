@@ -191,7 +191,7 @@
                   -P sno=true                                                     \
                   -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
                   -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
-                  -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
+                  -P base_dns_domain="{{ xtoph_ocp4.ocp.subdomain }}"            \
                   -P kernel_arguments="{{ xtoph_ocp4.rhcos.kernel_opts }}"        \
                   -P network_type="OVNKubernetes"                                 \
                   -P cpu_architecture="x86_64"                                    \
@@ -212,7 +212,7 @@
                   create cluster {{ xtoph_ocp4.ocp.clustername }}                 \
                   -P pull_secret="{{ xtoph_ocp4.ocp.creds_dir }}/pull-secret.txt" \
                   -P openshift_version="{{ xtoph_ocp4.ocp.version }}"             \
-                  -P base_dns_domain="{{ xtoph_ocp4.ocp.basedomain }}"            \
+                  -P base_dns_domain="{{ xtoph_ocp4.ocp.subdomain }}"            \
                   -P kernel_arguments="{{ xtoph_ocp4.rhcos.kernel_opts }}"        \
                   -P api_vip="{{ xtoph_ocp4.ocp.vip_api }}"                       \
                   -P ingress_vip="{{ xtoph_ocp4.ocp.vip_cluster }}"               \
@@ -320,12 +320,13 @@
      
 
   vars:
-    - t_tmpdir:    "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/ai"
-    - t_name:      "{{ inventory_hostname_short }}"
-    - t_addr:      "{{ h_pubIP  }}"
-    - t_mac:       "{{ xtoph_ocp4.rhcos.nic_mac }}"
-    - t_netdev:    "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):.*','\\1') }}"
-    - t_basedomain: "{{ xtoph_ocp4.ocp.basedomain }}"
+    - t_tmpdir:       "/var/tmp/{{ xtoph_ocp4.ocp.clustername }}/ai"
+    - t_name:         "{{ inventory_hostname_short }}"
+    - t_addr:         "{{ h_netIP  }}"
+    - t_mac:          "{{ xtoph_ocp4.rhcos.nic_mac }}"
+    - t_netdev:       "{{ xtoph_ocp4.rhcos.nic_dev | regex_replace('^(.*):.*','\\1') }}"
+    - t_basedomain:   "{{ xtoph_ocp4.ocp.basedomain }}"
+    - t_subdomain:    "{{ xtoph_ocp4.ocp.subdomain }}"
     - t_ctlplane_cnt: "{{ xtoph_ocp4._cluster_masters | length }}"
 
     - t_dns:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"

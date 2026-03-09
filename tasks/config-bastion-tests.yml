@@ -9,7 +9,7 @@
         vars: 
           - p_server:  "localhost"
           - p_name:    "{{ inventory_hostname }}"
-          - p_addr:    "{{ h_pubIP }}"
+          - p_addr:    "{{ h_netIP }}"
           - p_domain:  "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
         when:
           - workshop_vars.bastion.dns == true
