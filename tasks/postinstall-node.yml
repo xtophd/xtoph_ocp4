@@ -37,35 +37,21 @@
     
     
       - name: "xtoph_ocp4 : postinstall-node : cleanup ssh keys in knownhosts"
-        vars:
-          - p_item:      "{{ inventory_hostname }}"
-          - p_name:      "{{ inventory_hostname_short }}"
-          - p_addr:      "{{ h_netIP }}"
-          - p_fqdn:      "{{ p_name }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
-          - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
-          - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
         shell:
           cmd: |
-            ssh-keygen -R "{{ p_item }}" | true
-            ssh-keygen -R "{{ p_name }}" | true
-            ssh-keygen -R "{{ p_fqdn }}" | true
-            ssh-keygen -R "{{ p_addr }}" | true
+            ssh-keygen -R "{{ inventory_hostname }}" | true
+            ssh-keygen -R "{{ inventory_hostname_short }}" | true
+            ssh-keygen -R "{{ h_netIP }}" | true
         ignore_errors: yes
 
 
 
       - name: "xtoph_ocp4 : postinstall-node : add new ssh keys for node"
-        vars:
-          - p_item:      "{{ inventory_hostname }}"
-          - p_name:      "{{ inventory_hostname_short }}"
-          - p_addr:      "{{ h_netIP }}"
-          - p_fqdn:      "{{ p_name }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
-          - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
-          - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
         shell:
           cmd: |
-            ssh-keyscan "{{ p_name }}" >> /root/.ssh/known_hosts
-            ssh-keyscan "{{ p_fqdn }}" >> /root/.ssh/known_hosts
+            ssh-keyscan "{{ inventory_hostname }}" >> /root/.ssh/known_hosts
+            ssh-keyscan "{{ inventory_hostname_short }}" >> /root/.ssh/known_hosts
+            ssh-keyscan "{{ h_netIP }}" >> /root/.ssh/known_hosts
         ignore_errors: yes
 
 

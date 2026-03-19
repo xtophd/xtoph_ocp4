@@ -7,14 +7,20 @@
 
 
 
-- name: "config-bastion.yml : ***** BEGIN XTOPH_OCP4/config-bastion ROLE PROCESSING *****"
-  debug: msg="inventory_hostname={{ inventory_hostname }}"
+- name: "config-bastion : ***** BEGIN XTOPH_OCP4/config-bastion ROLE PROCESSING *****"
+  debug:
+    msg:
+    - "inventory_hostname={{ inventory_hostname }}"
+    - "action={{ xtoph_ocp4_action }}"
+    - "subaction={{ xtoph_ocp4_subaction }}"
 
-- include_tasks: "config-bastion-ocp-testlock.yml"
+- name: "config-bastion : include config-bastion-ocp-testlock.yml"
+  include_tasks: "config-bastion-ocp-testlock.yml"
 
-- include_tasks: "config-bastion-basics.yml"
+- name: "config-bastion : include config-bastion-basics.yml"
   when: 
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "basics"
+  include_tasks: "config-bastion-basics.yml"
 
 - include_tasks: "config-bastion-firewalld.yml"
   when: 
@@ -61,7 +67,15 @@
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "matchbox"
     - xtoph_ocp4.bastion.matchbox == true
 
-- include_tasks: "config-bastion-pxe.yml"
+- debug:
+    msg:
+    - "inventory_hostname ={{ inventory_hostname }}"
+    - "action             = {{ xtoph_ocp4_action }}"
+    - "subaction          = {{ xtoph_ocp4_subaction }}"
+    - "bastion.dhcp_pxe   = {{xtoph_ocp4.bastion.dhcp_pxe }}"
+
+- name: "config-bastion : include config-bastion-pxe"
+  include_tasks: "config-bastion-pxe.yml"
   when: 
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "pxe"
     - xtoph_ocp4.bastion.dhcp_pxe == true

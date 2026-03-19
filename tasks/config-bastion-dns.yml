@@ -79,28 +79,28 @@
  
       - name: "xtoph_ocp4 : config-bastion-dns : deploy resolv.conf"
         vars: 
-          - p_search:     "{{ xtoph_ocp4.ocp.basedomain }} {{ xtoph_ocp4.ocp.cluster_fqdn }}"
+          - p_search:     "{{ xtoph_ocp4.ocp.cluster_fqdn }} {{ xtoph_ocp4.ocp.subdomain }}"
           - p_nameserver: "127.0.0.1"
         template:
           src:   "dns-resolv-conf.j2"
           dest:  "/etc/resolv.conf"
           owner: root
 
-      - name: "deployer-setup : adjust /etc/dnsmasq.conf with except-interface"
+      - name: "xtoph_ocp4 : adjust /etc/dnsmasq.conf with except-interface"
         lineinfile:
           dest: "/etc/dnsmasq.conf"
           insertafter: "^#except-interface=.*$"
           line: "except-interface=virbr0"
           state: present
 
-      - name: "deployer-setup : adjust /etc/dnsmasq.conf with bind-interfaces"
+      - name: "xtoph_ocp4 : adjust /etc/dnsmasq.conf with bind-interfaces"
         lineinfile:
           dest: "/etc/dnsmasq.conf"
           insertafter: "^#bind-interfaces.*$"
           line: "bind-interfaces"
           state: present
 
-      - name: "deployer-setup : disable the listen on loopback interface only config"
+      - name: "xtoph_ocp4 : disable the listen on loopback interface only config"
         replace:
           dest: "/etc/dnsmasq.conf"
           regexp: "^interface=lo"
@@ -116,6 +116,7 @@
         vars:
           - p_clustername:     "{{ xtoph_ocp4.ocp.clustername }}"
           - p_nameServer:      "{{ xtoph_ocp4.network.nameserver }}"
+          - p_subdomain:       "{{ xtoph_ocp4.ocp.subdomain }}"
           - p_domain:          "{{ xtoph_ocp4.ocp.basedomain }}"
           - p_cluster_fqdn:    "{{ xtoph_ocp4.ocp.cluster_fqdn }}"
           - p_wildcard:        "{{ xtoph_ocp4.ocp.wildcard_fqdn }}"

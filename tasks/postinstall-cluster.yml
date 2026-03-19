@@ -105,33 +105,18 @@
       #
     
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) cleanup ssh keys in knownhosts"
-        vars:
-          - p_item:      "{{ inventory_hostname }}"
-          - p_name:      "{{ inventory_hostname_short }}"
-          - p_addr:      "{{ h_netIP }}"
-          - p_fqdn:      "{{ p_name }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
-          - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
-          - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
         shell:
           cmd: |
-            ssh-keygen -R "{{ p_item }}" | true
-            ssh-keygen -R "{{ p_name }}" | true
-            ssh-keygen -R "{{ p_fqdn }}" | true
+            ssh-keygen -R "{{ inventory_hostname }}" | true
+            ssh-keygen -R "{{ inventory_hostname_short }}" | true
             ssh-keygen -R "{{ p_addr }}" | true
         ignore_errors: yes
 
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) add new ssh keys for node"
-        vars:
-          - p_item:      "{{ inventory_hostname }}"
-          - p_name:      "{{ inventory_hostname_short }}"
-          - p_addr:      "{{ h_netIP }}"
-          - p_fqdn:      "{{ p_name }}.{{ xtoph_ocp4.ocp.cluster_fqdn }}"
-          - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
-          - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
         shell:
           cmd: |
-            ssh-keyscan "{{ p_name }}" >> /root/.ssh/known_hosts
-            ssh-keyscan "{{ p_fqdn }}" >> /root/.ssh/known_hosts
+            ssh-keyscan "{{ inventory_hostname }}" >> /root/.ssh/known_hosts
+            ssh-keyscan "{{ inventory_hostname_short }}" >> /root/.ssh/known_hosts
         ignore_errors: yes
 
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) fetch kubeconfig"
@@ -299,28 +284,28 @@
       ##
       ##     NOTE: 
       ##       I am not sure if all openshift deployments have a console, so 
-      ##       this watch many not be valid in all circumstances.
+      ##       this watch may not be valid in all circumstances.
       ##
 
-      - name: "xtoph_ocp4 : postinstall-cluster : watch until availability of console is 'True', approve CSRs as needed"
-        run_once: true
-        shell:
-          cmd: |
-            export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
-            {{ oc_cmd }} get clusteroperators --no-headers console | awk '{print $3}' | grep -i true 
-            if [[ $? == 0 ]]; then 
-              for i in `{{ oc_cmd }} get csr | grep -i pending | awk '{print $1}'`; do 
-                {{ oc_cmd }} adm certificate approve $i
-                sleep 1
-              done
-              exit 1 
-            else 
-              exit 0 
-            fi
-        register: result
-        until:  result.rc == 0
-        retries: 600
-        delay: 5
+#      - name: "xtoph_ocp4 : postinstall-cluster : watch until availability of console is 'True', approve CSRs as needed"
+#        run_once: true
+#        shell:
+#          cmd: |
+#            export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
+#            {{ oc_cmd }} get clusteroperators --no-headers console | awk '{print $3}' | grep -i true 
+#            if [[ $? == 0 ]]; then 
+#              for i in `{{ oc_cmd }} get csr | grep -i pending | awk '{print $1}'`; do 
+#                {{ oc_cmd }} adm certificate approve $i
+#                sleep 1
+#              done
+#              exit 1 
+#            else 
+#              exit 0 
+#            fi
+#        register: result
+#        until:  result.rc == 0
+#        retries: 600
+#        delay: 5
 
       - name: "xtoph_ocp4 : postinstall-cluster : final CSR approval check"
         run_once: true

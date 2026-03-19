@@ -275,7 +275,7 @@
     - p_gateway:   "{{ xtoph_ocp4.network.gateway }}"
     - p_dns:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.dns == true else xtoph_ocp4.network.nameserver }}"
     - p_ntp:       "{{ xtoph_ocp4.bastion.host_ip if xtoph_ocp4.bastion.ntp == true else xtoph_ocp4.network.timeserver }}"
-    - p_domain:    "{{ xtoph_ocp4.ocp.basedomain }}"
+    - p_domain:    "{{ xtoph_ocp4.ocp.subdomain }}"
     - p_cluster:   "{{ xtoph_ocp4.ocp.clustername }}"
     - p_dhcpgroup: "{{ xtoph_ocp4.ocp.clustername }}"
     - p_http_port: "{{ xtoph_ocp4.bastion.matchbox_port }}"

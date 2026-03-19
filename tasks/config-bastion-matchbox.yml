@@ -118,7 +118,7 @@
       
       - name: "xtoph_ocp4 : config-bastion-matchbox : create self signed certs"
         environment:
-          SAN: "DNS.1:{{ xtoph_ocp4.bastion.host_name }}.{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.basedomain }},IP.1:{{ xtoph_ocp4.bastion.host_ip }}"
+          SAN: "DNS.1:{{ xtoph_ocp4.bastion.host_name }}.{{ xtoph_ocp4.ocp.clustername }}.{{ xtoph_ocp4.ocp.subdomain }},IP.1:{{ xtoph_ocp4.bastion.host_ip }}"
         shell:
           cmd: |
             cd "/usr/local/src/{{ xtoph_ocp4.matchbox_assets.destdir }}/scripts/tls"
@@ -225,7 +225,8 @@
               until: coreos_download is not failed
               retries: 5
       
-#        when: xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
+        when: xtoph_ocp4.ocp.provisioner == "upi-vmedia" or
+              xtoph_ocp4.ocp.provisioner == "upi-pxe"
       
       
       #   

@@ -11,7 +11,7 @@
 - name: "xtoph_ocp4 : config-bastion-workshop-materials : loading workshop user credentials"
   include_vars:
     file: "./config/credentials.yml"
-  when: workshopuser_username is undefined
+  when: workshop_admin_uid is undefined or workshop_student_uid is undefined 
 
 
 
@@ -84,7 +84,7 @@
         with_items:
           - {src: 'workshop-config-identity-htpasswd.j2', dest: '/usr/local/bin/workshop-config-identity-htpasswd.sh'}
           - {src: 'workshop-config-identity-ldap.j2', dest: '/usr/local/bin/workshop-config-identity-ldap.sh'}
-        when: workshopuser_username is defined
+        when: workshop_admin_uid is defined or workshop_student_uid is defined 
       
       
       
