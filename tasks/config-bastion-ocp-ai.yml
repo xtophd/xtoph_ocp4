@@ -309,11 +309,20 @@
         when: 
           - inventory_hostname == elected_cluster_node
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create soft links to ISO for cluster nodes"
+
+      ##
+      ##    NOTE: 
+      ##
+      ##        Some BMC virtual media services which use NFS, 
+      ##        choke on the image files if they are symbolic links.  
+      ##        So I switched to using a hard link
+      ##
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create hard links to ISO for cluster nodes"
         file:
           src: /var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}.iso
           dest: /var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}-{{inventory_hostname_short }}.iso
-          state: link
+          state: hard
         when:
         - inventory_hostname in cluster_nodes
         

@@ -41,7 +41,18 @@
           regexp: '{{ xtoph_ocp4.bastion.nfs_export }}(\s+).*$'
           state:  absent
     
-      - name: 'xtoph_ocp4 : config-bastion-nfs : add squashed entries in /etc/exports'
+      - name: 'xtoph_ocp4 : config-bastion-nfs : add squashed/ro entries in /etc/exports'
+        lineinfile:
+          dest: '/etc/exports'
+          line: '{{ item }}   *(ro,sync,no_subtree_check,all_squash,anonuid=65534,anongid=65534)'
+          state: present
+          owner: root
+          group: root
+          mode: 644
+        with_items:
+          - '/var/lib/matchbox/assets'
+    
+      - name: 'xtoph_ocp4 : config-bastion-nfs : add squashed/rw  entries in /etc/exports'
         lineinfile:
           dest: '/etc/exports'
           line: '{{ item }}   *(rw,sync,no_subtree_check,all_squash,anonuid=65534,anongid=65534)'
@@ -53,7 +64,7 @@
           - '{{ xtoph_ocp4.bastion.nfs_export }}/registry'
           - '{{ xtoph_ocp4.bastion.nfs_export }}/hello-world'
     
-      - name: 'xtoph_ocp4 : config-bastion-nfs : add unsquashed entries in /etc/exports'
+      - name: 'xtoph_ocp4 : config-bastion-nfs : add unsquashed/rw entries in /etc/exports'
         lineinfile:
           dest: '/etc/exports'
           line: '{{ item }}   *(rw,sync,no_subtree_check,no_root_squash)'
