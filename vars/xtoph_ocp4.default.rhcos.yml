@@ -7,7 +7,7 @@
   nic_mode:         "{{ h_rhcosNICmode  | default('dhcp') }}"
   nic_mac:          "{{ h_netMAC        | default('--required--') }}"
   usb_delay:        "{{ h_rhcosUSBdelay | default('') }}"
-  kernel_opts:      "{{ h_kernelOPTS    | default('') }}"
+  kernel_opts:      "{{ h_rhcosKOPTS    | default('') }}"
 
 "homelab-ov10g":
   bootloader:       "bios"
