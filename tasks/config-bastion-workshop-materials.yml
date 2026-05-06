@@ -3,7 +3,7 @@
 
 #
 #    Try loading the credentials.yml file
-#    if workshopuser_username is not defined
+#    if workshop_student_username is not defined
 #
 
 

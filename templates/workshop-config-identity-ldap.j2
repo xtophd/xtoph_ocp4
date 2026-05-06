@@ -9,6 +9,11 @@ echo "----------------------------------------"
 oc apply -f /usr/local/etc/workshop-identity-ldap.yaml
 
 echo ""
+echo "Applying cluster-admin role to {{ xtoph_ocp4.ocp.admin_user }}"
+echo "-------------------------------------------------"
+oc adm policy add-cluster-role-to-user cluster-admin {{ xtoph_ocp4.ocp.admin_user }}
+
+echo ""
 echo "Delete openshift-authentication pods (reload)"
 echo "-------------------------------------------------"
 oc delete --all pods -n openshift-authentication

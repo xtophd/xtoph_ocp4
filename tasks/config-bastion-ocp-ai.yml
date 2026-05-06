@@ -318,6 +318,13 @@
       ##        So I switched to using a hard link
       ##
 
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : clear (delete) hard links to ISO for cluster nodes"
+        file:
+          dest: /var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}-{{inventory_hostname_short }}.iso
+          state: absent
+        when:
+        - inventory_hostname in cluster_nodes
+        
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : create hard links to ISO for cluster nodes"
         file:
           src: /var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}.iso

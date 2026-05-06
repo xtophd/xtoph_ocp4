@@ -109,7 +109,7 @@
           cmd: |
             ssh-keygen -R "{{ inventory_hostname }}" | true
             ssh-keygen -R "{{ inventory_hostname_short }}" | true
-            ssh-keygen -R "{{ p_addr }}" | true
+            ssh-keygen -R "{{ h_netIP }}" | true
         ignore_errors: yes
 
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) add new ssh keys for node"
@@ -117,6 +117,7 @@
           cmd: |
             ssh-keyscan "{{ inventory_hostname }}" >> /root/.ssh/known_hosts
             ssh-keyscan "{{ inventory_hostname_short }}" >> /root/.ssh/known_hosts
+            ssh-keyscan "{{ h_netIP }}" >> /root/.ssh/known_hosts
         ignore_errors: yes
 
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) fetch kubeconfig"
