@@ -29,37 +29,6 @@
         until: openshift_download is not failed
         retries: 5
       
-      - name: "xtoph_ocp4 : config-bastion-ocp-upi : unpack ocp software"
-        shell:
-          cmd: |
-            cd /usr/local/bin
-            tar zxvf /usr/local/src/{{ item }}
-        with_items:
-          - "{{ xtoph_ocp4.ocp_assets.install_tar }}"
-      
-      - name: "xtoph_ocp4 : config-bastion-ocp-upi : install podman to access coreos-installer and customize the ISOs"
-        yum: 
-          name: podman 
-          state: installed
-
-      - name: "xtoph_ocp4 : config-bastion-ocp-upi : pull fresh copy of coreos-installer:release"
-        throttle: "{{ xtoph_ocp4._throttle | int  }}"
-        shell:
-          cmd: |
-            podman pull quay.io/coreos/coreos-installer:release 
-        retries: 5
-        delay: 3
-
-      - name: "xtoph_ocp4 : config-bastion-ocp-upi : install bash-completion to make life on the cli glorious"
-        yum: 
-          name: bash-completion
-          state: installed
-
-      - name: "xtoph_ocp4 : config-bastion-ocp-upi : configure openshift bash completion"
-        shell:
-          cmd: |
-            /usr/local/bin/openshift-install completion bash >> /etc/bash_completion.d/openshift-install_completion
-
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : Clean-up matchbox ignition directory"
         shell:
           cmd: |

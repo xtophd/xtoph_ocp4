@@ -2,8 +2,8 @@ apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
   labels:
-    machineconfiguration.openshift.io/role: master
-  name: 99-openshift-machineconfig-kernel-args
+    machineconfiguration.openshift.io/role: {{ t_role }}
+  name: 99-openshift-machineconfig-kernel-args-{{ t_role }}
 spec:
   kernelArguments:
     - "{{ t_kargs }}"

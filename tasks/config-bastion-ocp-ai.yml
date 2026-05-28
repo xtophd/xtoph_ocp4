@@ -51,16 +51,20 @@
       ##
       ##
       
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : elect node which will run aicli and other isolated commands"
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : elect master node which will run aicli and other isolated commands"
         ansible.builtin.set_fact: 
-          elected_cluster_node:  "{{ ( xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno ) | first }}"
+          elected_master_node:  "{{ ( xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_sno ) | first }}"
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : elect worker node which will run aicli and other isolated commands"
+        ansible.builtin.set_fact: 
+          elected_worker_node:  "{{ ( xtoph_ocp4._cluster_workers ) | first }}"
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : create list of cluster nodes"
         ansible.builtin.set_fact: 
           cluster_nodes:  "{{ xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno }}"
 
       - debug:
-          var: elected_cluster_node
+          var: elected_master_node
 
       - debug:
           var: cluster_nodes
@@ -91,7 +95,7 @@
           group: root
           mode: 644
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-interfaces (DHCP)"
         template:
@@ -123,7 +127,7 @@
           group: root
           mode: 644
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy parms-macs"
         template:
@@ -143,20 +147,37 @@
           group: root
           mode: 644
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
 
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy kernel args manifest"
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy master kernel args manifest"
         vars:
+          - t_role:      "master"
           - t_kargs:     "{{ xtoph_ocp4.rhcos.kernel_opts | default ('') }}"
         template:
           src: "ocp-ai-machineconfig-kargs.j2"
-          dest: "{{ t_tmpdir }}/manifests/99-rhcos-kernel-args-{{ xtoph_ocp4.ocp.clustername }}.yml"
+          dest: "{{ t_tmpdir }}/manifests/99-rhcos-kernel-args-{{ xtoph_ocp4.ocp.clustername }}-{{ t_role }}.yml"
           owner: root
           group: root
           mode: 644
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : deploy worker kernel args manifest"
+        vars:
+          - t_role:      "worker"
+          - t_kargs:     "{{ xtoph_ocp4.rhcos.kernel_opts | default ('') }}"
+        template:
+          src: "ocp-ai-machineconfig-kargs.j2"
+          dest: "{{ t_tmpdir }}/manifests/99-rhcos-kernel-args-{{ xtoph_ocp4.ocp.clustername }}-{{ t_role }}.yml"
+          owner: root
+          group: root
+          mode: 644
+        when: 
+          - inventory_hostname == elected_worker_node
+
+
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : test for existing cluster configuration"
         shell:
@@ -166,7 +187,7 @@
         ignore_errors: true
         register: aicli_status
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
 
       - debug:
           msg:
@@ -176,7 +197,7 @@
             - "xtoph_ocp4.ocp.topology: {{ xtoph_ocp4.ocp.topology }} == sno"
             - "inventory_hostname: {{ inventory_hostname }}"
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
 
 
 
@@ -201,7 +222,7 @@
                   -P vip_dhcp_allocation="false"                                  
         when: 
           - xtoph_ocp4.ocp.topology == "sno"
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
      
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : write aicli-create.sh for NORMAL cluster"
         copy:
@@ -224,7 +245,7 @@
                   -P vip_dhcp_allocation="false"                                  
         when: 
           - xtoph_ocp4.ocp.topology != "sno"
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : write aicli-param.sh"
         copy:
@@ -235,7 +256,7 @@
                   update cluster {{ xtoph_ocp4.ocp.clustername }}  \
                   --paramfile {{ t_tmpdir }}/parms.yml
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : write aicli-manifest.sh"
         copy:
@@ -244,7 +265,7 @@
           content: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }} create manifests --dir manifests {{ xtoph_ocp4.ocp.clustername }}
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
 
 
 
@@ -266,7 +287,7 @@
         with_items:
           - "aicli-create.sh"
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
           - aicli_status.rc != 0 
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : execute aicli-(update) scripts"
@@ -277,7 +298,7 @@
           - "aicli-param.sh"
           - "aicli-manifest.sh"
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
 
 
 
@@ -287,10 +308,21 @@
 
 
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : cleanup any prior iso download"
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : cleanup prior AI ISO download"
         file:
-          path: "/var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}.iso"
+          path: "{{ t_assets_dir }}/{{ t_src_iso }}"
           state: absent
+        when: 
+          - inventory_hostname == elected_master_node
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : cleanup prior AI ISO cluster node copies"
+        file:
+          path: "{{ t_assets_dir }}/{{ t_dest_iso }}"
+          state: absent
+        when: 
+          - inventory_hostname in cluster_nodes
+
+
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : aicli create iso"
         shell:
@@ -298,7 +330,7 @@
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                   create iso {{ xtoph_ocp4.ocp.clustername }}           
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
       
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : aicli download ISO"
         shell:
@@ -307,32 +339,46 @@
             aicli --offlinetoken {{ ocm_token.stdout|quote }}      \
                   download iso {{ xtoph_ocp4.ocp.clustername }}
         when: 
-          - inventory_hostname == elected_cluster_node
+          - inventory_hostname == elected_master_node
+
 
 
       ##
       ##    NOTE: 
       ##
-      ##        Some BMC virtual media services which use NFS, 
-      ##        choke on the image files if they are symbolic links.  
-      ##        So I switched to using a hard link
+      ##        Sometimes need kernel options to be present for boot-time,
+      ##        thus we create unique image for each node and modify/customize it
       ##
 
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : clear (delete) hard links to ISO for cluster nodes"
-        file:
-          dest: /var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}-{{inventory_hostname_short }}.iso
-          state: absent
+       
+ 
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create cluster node copies of AI ISO"
+        throttle: "{{ xtoph_ocp4._throttle | int  }}"
+        copy:
+          src: "{{ t_assets_dir }}/{{ t_src_iso }}"
+          dest: "{{ t_assets_dir }}/{{ t_dest_iso }}"
+          owner: root
+          group: root
+          mode:  0644
+          remote_src: yes
         when:
-        - inventory_hostname in cluster_nodes
+          - inventory_hostname in cluster_nodes
         
-      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create hard links to ISO for cluster nodes"
-        file:
-          src: /var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}.iso
-          dest: /var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}-{{inventory_hostname_short }}.iso
-          state: hard
+
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : customize cluster node copies of AI ISO with additional kernel args"
+        throttle: "{{ xtoph_ocp4._throttle | int  }}"
+        shell:
+          cmd: |
+            cd {{t_assets_dir}}
+            podman run --privileged --rm \
+                -v /dev:/dev -v /run/udev:/run/udev -v {{t_assets_dir}}:/data \
+                -w /data quay.io/coreos/coreos-installer:release \
+                iso kargs modify -a "{{xtoph_ocp4.rhcos.kernel_opts}}" {{ t_dest_iso }}
         when:
-        - inventory_hostname in cluster_nodes
-        
+          - inventory_hostname in cluster_nodes
+          - xtoph_ocp4.rhcos.kernel_opts is defined
+
      
 
   vars:
@@ -355,6 +401,11 @@
     #    t_table_id is NOT related to netmask
     #    For more info on t_table_id: https://access.redhat.com/solutions/7011711
     - t_table_id:  "254"
+
+    - t_assets_dir:    "/var/lib/matchbox/assets"
+    - t_dest_iso:      "{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
+    - t_src_iso:       "{{ xtoph_ocp4.ocp.clustername }}.iso"
+
 
 
 
