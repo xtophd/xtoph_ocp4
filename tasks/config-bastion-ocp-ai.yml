@@ -58,6 +58,8 @@
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : elect worker node which will run aicli and other isolated commands"
         ansible.builtin.set_fact: 
           elected_worker_node:  "{{ ( xtoph_ocp4._cluster_workers ) | first }}"
+        when:
+          - xtoph_ocp4._cluster_workers | length
 
       - name: "xtoph_ocp4 : config-bastion-ocp-ai : create list of cluster nodes"
         ansible.builtin.set_fact: 
@@ -174,7 +176,8 @@
           owner: root
           group: root
           mode: 644
-        when: 
+        when:
+          - xtoph_ocp4._cluster_workers | length
           - inventory_hostname == elected_worker_node
 
 
