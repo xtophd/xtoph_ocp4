@@ -28,6 +28,14 @@
         register: openshift_download
         until: openshift_download is not failed
         retries: 5
+
+      - name: "xtoph_ocp4 : config-bastion-ocp-upi : unpack ocp software"
+        shell:
+          cmd: |
+            cd /usr/local/bin
+            tar zxvf /usr/local/src/{{ item }}
+        with_items:
+          - "{{ xtoph_ocp4.ocp_assets.install_tar }}"
       
       - name: "xtoph_ocp4 : config-bastion-ocp-upi : Clean-up matchbox ignition directory"
         shell:

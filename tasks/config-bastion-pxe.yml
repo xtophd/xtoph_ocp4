@@ -255,7 +255,7 @@
         vars:
           - p_nextsvr:      "{{ xtoph_ocp4.bastion.host_ip }}"
           - p_http_port:    "{{ xtoph_ocp4.bastion.matchbox_port }}"
-          - p_tftp_cfgpath: "/uefi/rhdoc-{{ xtoph_ocp4.ocp.version }}/grub.cfg-01-{{ t_dash_mac }}" 
+          - p_tftp_cfgpath: "/uefi/rhcos-{{ xtoph_ocp4.ocp.version }}/grub.cfg-01-{{ t_dash_mac }}" 
           - p_kargs : >
                 linuxefi (http,{{ t_addr}}:{{ t_port }})/assets/{{ t_kernel }} 
                 ip={{ t_ip }} 
