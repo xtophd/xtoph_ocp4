@@ -11,6 +11,13 @@
         shell: cat {{ xtoph_ocp4.ocp.creds_dir }}/ocm-token.txt
         register: ocm_token
 
+      - name: "xtoph_ocp4 : config-bastion-ocp-ai : create list of cluster nodes"
+        ansible.builtin.set_fact:
+          cluster_nodes:  "{{ xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno }}"
+
+      - debug:
+          var: cluster_nodes
+
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for nodes"
         shell:
           cmd: |
@@ -21,6 +28,14 @@
         delay: 5
         retries: 600
 
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) get cluster status"
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }} -o json \
+                info cluster {{ xtoph_ocp4.ocp.clustername }} | jq -r '.status'
+        register: aicli_status
+        retries: 600
+
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) **NEW** set install disk for cluster nodes"
         shell:
           cmd: |
@@ -28,6 +43,7 @@
                 update host {{ inventory_hostname }} -P disk="{{ xtoph_ocp4.rhcos.blk_dev }}"
         when: 
           - inventory_hostname in cluster_nodes
+          - aicli_status.stdout == "pending-for-input"
           - aicli_node_status.stdout == "known"
        
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) set node roles for masters"
@@ -37,6 +53,7 @@
                 update host {{ inventory_hostname }} -P role=master
         when:
           - aicli_node_status.stdout == "known"
+          - aicli_status.stdout != "pending-for-input"
           - inventory_hostname in xtoph_ocp4._cluster_masters
 
       - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster status == ready | installed"
@@ -66,7 +83,7 @@
                 start cluster {{ xtoph_ocp4.ocp.clustername }}
         when: aicli_cluster_status.stdout == "ready"
 
-      - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster install preparations to complete"
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster install preparations to complete [up to 1 hr]"
         run_once: true
         shell:
           cmd: |
@@ -75,19 +92,55 @@
         register: aicli_status
         until: aicli_status.stdout == "100"
         delay: 5
-        retries: 600
+        retries: 720
         when: aicli_cluster_status.stdout == "ready"
 
-      - name: "xtoph_ocp4 : postinstall-cluster : (AI) wait for cluster installation to complete"
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) cluster installation 0-25% [up to 1hr]"
         run_once: true
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }} -o json \
-                info cluster {{ xtoph_ocp4.ocp.clustername }} | jq '.progress.installing_stage_percentage'
+                info cluster {{ xtoph_ocp4.ocp.clustername }} | jq '.progress.total_percentage'
+        register: aicli_status
+        until: aicli_status.stdout > "25"
+        delay: 5
+        retries: 720
+        when: aicli_cluster_status.stdout == "ready"
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) cluster installation 25-50% [up to 1hr]"
+        run_once: true
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }} -o json \
+                info cluster {{ xtoph_ocp4.ocp.clustername }} | jq '.progress.total_percentage'
+        register: aicli_status
+        until: aicli_status.stdout > "50" 
+        delay: 5
+        retries: 720
+        when: aicli_cluster_status.stdout == "ready"
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) cluster installation 50-75% [up to 2hr]"
+        run_once: true
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }} -o json \
+                info cluster {{ xtoph_ocp4.ocp.clustername }} | jq '.progress.total_percentage'
+        register: aicli_status
+        until: aicli_status.stdout > "75"
+        delay: 5
+        retries: 1440
+        when: aicli_cluster_status.stdout == "ready"
+
+      - name: "xtoph_ocp4 : postinstall-cluster : (AI) cluster installation completion [up to 2hr]"
+        run_once: true
+        shell:
+          cmd: |
+            aicli --offlinetoken {{ ocm_token.stdout|quote }} -o json \
+                info cluster {{ xtoph_ocp4.ocp.clustername }} | jq '.progress.total_percentage'
         register: aicli_status
         until: aicli_status.stdout == "100"
         delay: 5
-        retries: 600
+        retries: 1440
         when: aicli_cluster_status.stdout == "ready"
 
 
