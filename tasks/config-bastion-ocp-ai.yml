@@ -306,7 +306,7 @@
         shell:
           cmd: |
             aicli --offlinetoken {{ ocm_token.stdout|quote }} -o json \
-                info cluster {{ xtoph_ocp4.ocp.clustername }} | jq -r '.status'
+                info cluster {{ xtoph_ocp4.ocp.clustername }} 
         register: aicli_status
         retries: 600
 
