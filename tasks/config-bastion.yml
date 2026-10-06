@@ -74,13 +74,6 @@
     - "subaction          = {{ xtoph_ocp4_subaction }}"
     - "bastion.dhcp_pxe   = {{xtoph_ocp4.bastion.dhcp_pxe }}"
 
-- name: "config-bastion : include config-bastion-pxe"
-  include_tasks: "config-bastion-pxe.yml"
-  when: 
-    - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "pxe"
-    - xtoph_ocp4.bastion.dhcp_pxe == true
-#    - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
-
 - include_tasks: "config-bastion-dhcp.yml"
   when: 
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "dhcp"
@@ -131,7 +124,6 @@
   when: 
     - xtoph_ocp4.ocp.version is version('4.6',operator='<=')
     - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "iso"
-#    - xtoph_ocp4.bastion.iso == true
     - xtoph_ocp4.ocp.provisioner == "upi-vmedia"
     - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
 
@@ -148,6 +140,18 @@
     - xtoph_ocp4.bastion.assisted_installer is defined and xtoph_ocp4.bastion.assisted_installer == true
     - xtoph_ocp4.ocp.provisioner == "ai-vmedia" or 
       xtoph_ocp4.ocp.provisioner == "ai-http"
+
+## 
+##    10/01/2026 - PXE setup was moved to follow ocp-<tasks> because it requires all media to have
+##                 been downloaded already. 
+##                 Example: ai-http provisioner needs the AI downloaded ISO in order to extract the uefi media img
+##
+
+- include_tasks: "config-bastion-pxe.yml"
+  when: 
+    - xtoph_ocp4_subaction == "" or xtoph_ocp4_subaction == "pxe"
+    - xtoph_ocp4.bastion.dhcp_pxe == true
+    - xtoph_ocp4.bastion.assisted_installer is undefined or xtoph_ocp4.bastion.assisted_installer == false
 
 - include_tasks: "config-bastion-ocp-lock.yml"
   when: 

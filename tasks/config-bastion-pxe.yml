@@ -149,6 +149,11 @@
           - "uefi"
           - "iso"
     
+      - debug:
+          msg: 
+            - "ISO Source: {{ t_src_iso }}"
+            - "Extraction Destination: {{ t_tmp_subdir }}"
+
       - name: "xtoph_ocp4 : config-bastion-pxe : clone ISO source to temp workspace"
         run_once: true
         shell:
@@ -452,6 +457,6 @@
     - t_kernel:      "{{ xtoph_ocp4.rhcos_assets.kernel }}"
     - t_rootfs:      "{{ xtoph_ocp4.rhcos_assets.rootfs | default('') }}"
     - t_image:       "{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
-    - t_src_iso:     "/var/lib/matchbox/assets/{{ xtoph_ocp4.rhcos_assets.iso }}"
+    - t_src_iso:     "/var/lib/matchbox/assets/{% if xtoph_ocp4.ocp.provisioner == 'ai-http' %}{{ xtoph_ocp4.ocp.clustername }}.iso{% else %}{{ xtoph_ocp4.rhcos_assets.iso }}{% endif %}"
     - t_dest_iso:    "/var/lib/matchbox/assets/{{ xtoph_ocp4.ocp.clustername }}-{{ inventory_hostname_short }}.iso"
 
