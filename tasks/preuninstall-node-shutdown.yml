@@ -78,12 +78,14 @@
         register: ssh_status
         ignore_errors: yes
         when: 
-          - xtoph_ocp4.skip_shutdown is undefined or xtoph_ocp4.skip_shutdown is False
+          - xtoph_ocp4.ocp.skip_shutdown is undefined or xtoph_ocp4.ocp.skip_shutdown == false
 
 
       #
       #    By specifying --force twice, systemd essentially unplugs the OS (not a safe shutdown), once is good enough
       #
+
+      - debug: var=xtoph_ocp4.ocp.skip_shutdown
 
       - name: "xtoph_ocp4 : preunistall-node-shutdown : issue graceful OCP node poweroff"
         delegate_to: "{{ xtoph_ocp4.bastion.host_fqdn }}"
@@ -91,7 +93,7 @@
           cmd: |
             ssh core@{{ inventory_hostname }} sudo systemctl -f poweroff
         when: 
-          - xtoph_ocp4.skip_shutdown is undefined or xtoph_ocp4.skip_shutdown is False
+          - xtoph_ocp4.ocp.skip_shutdown is undefined or xtoph_ocp4.ocp.skip_shutdown == false
           - ssh_status is not failed
           - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
 
@@ -105,7 +107,7 @@
           timeout: 180
         ignore_errors: yes
         when: 
-          - xtoph_ocp4.skip_shutdown is undefined or xtoph_ocp4.skip_shutdown is False
+          - xtoph_ocp4.ocp.skip_shutdown is undefined or xtoph_ocp4.ocp.skip_shutdown == false
           - ssh_status is not failed
           - inventory_hostname in xtoph_ocp4._cluster_bootstrap + xtoph_ocp4._cluster_masters + xtoph_ocp4._cluster_workers + xtoph_ocp4._cluster_sno
 
