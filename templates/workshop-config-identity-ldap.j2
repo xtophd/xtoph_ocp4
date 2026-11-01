@@ -1,22 +1,27 @@
 #!/bin/bash
 
+##
+## Include the lib-exercise functions
+##
+
+. $(dirname "$0")/lib-exercise.sh
+
+##
+## Load the kubeconfig
+##
+
 export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
 
-echo ""
-echo "Configuring Identity Provider (LDAP)"
-echo "----------------------------------------"
 
-oc apply -f /usr/local/etc/workshop-identity-ldap.yaml
 
-echo ""
-echo "Applying cluster-admin role to {{ xtoph_ocp4.ocp.admin_user }}"
-echo "-------------------------------------------------"
-oc adm policy add-cluster-role-to-user cluster-admin {{ xtoph_ocp4.ocp.admin_user }}
+exercise_cmd_nowait "Configure LDAP Identity Provider" \
+        "oc apply -f /usr/local/etc/workshop-identity-ldap.yaml"
 
-echo ""
-echo "Delete openshift-authentication pods (reload)"
-echo "-------------------------------------------------"
-oc delete --all pods -n openshift-authentication
+exercise_cmd_nowait "Apply cluster-admin role" \
+        "oc adm policy add-cluster-role-to-user cluster-admin {{ xtoph_ocp4.ocp.admin_user }}"
+
+exercise_cmd_nowait "Delete/reload openshift-authentication pods" \
+        "oc delete --all pods -n openshift-authentication"
 
 echo ""
 echo "##"

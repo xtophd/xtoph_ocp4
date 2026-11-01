@@ -1,18 +1,34 @@
 #!/bin/bash
 
+##
+## Include the lib-exercise functions
+##
+
+. $(dirname "$0")/lib-exercise.sh
+
+
+
+##
+##
+##
+
 export KUBECONFIG={{ xtoph_ocp4.ocp.creds_dir }}/auth/kubeconfig
 
-echo "Configure Image Registry"
-echo "------------------------"
 
-echo "Applying Registry PV configuration"
-oc apply -f /usr/local/etc/workshop-registryPV.yaml
+##
+##
+##
 
-echo "Changing storage: { pvc: { claim: } }"
-oc patch configs.imageregistry.operator.openshift.io/cluster --type merge -p '{"spec":{"storage":{"pvc":{"claim":""}}}}'
+echo "Configure simple NFS Image registry" 
 
-sleep 3
+exercise_cmd_nowait "Apply config yaml" \
+        "oc apply -f /usr/local/etc/workshop-registryPV.yaml"
 
-echo "Changing managementState : Managed"
-oc patch configs.imageregistry.operator.openshift.io/cluster --type merge -p '{"spec":{"managementState":"Managed"}}'
+exercise_cmd_nowait "Patch Image Registry operator storage spec" \
+        'oc patch configs.imageregistry.operator.openshift.io/cluster --type merge -p "{\"spec\":{\"storage\":{\"pvc\":{\"claim\":\"\"}}}}"'
+
+exercise_wait 3
+
+exercise_cmd_nowait "Patch Image Registry managementState : Managed" \
+        'oc patch configs.imageregistry.operator.openshift.io/cluster --type merge -p "{\"spec\":{\"managementState\":\"Managed\"}}"'
 
