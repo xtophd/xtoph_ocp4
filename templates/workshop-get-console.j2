@@ -20,6 +20,6 @@ export KUBECONFIG={{ workshop_extras.ocp_creds_dir }}/auth/kubeconfig
 ##
 ##
 
-exercise_cmd "Fetch the WebUI information" \
+exercise_cmd_nowait "Fetch the WebUI information" \
              "oc whoami --show-console"
 

@@ -35,6 +35,31 @@ function exercise_cmd() {
 
 
 
+function exercise_cmd_nowait() {
+
+  msg="$1"
+  cmd="$2"
+
+  echo ""
+  echo "## - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - "
+  echo "## Exercise Message: $msg"
+  echo "## COMMAND: $cmd"
+  echo ""
+
+  eval $cmd
+
+  rc="$?"
+
+  if [[ "$rc" != "0" ]] ; then
+      echo "EXERCISE_CMD FATAL: command returned non-zero ($rc)"
+      exit $rc
+  fi
+
+  echo ""
+}
+
+
+
 ##
 ##  ------------------------------------ 
 ##
